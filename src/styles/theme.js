@@ -1,69 +1,111 @@
 import { createTheme } from '@mui/material/styles';
 
+// TicketGo Color Palette - Based on Logo
+const colors = {
+  primary: {
+    main: '#5E35B1',      // Tím đậm (chữ "Ticket")
+    light: '#7C3AED',     // Tím sáng (chữ "GO")
+    dark: '#4527A0',      // Tím đậm hơn
+    lighter: '#EDE7F6',   // Tím rất nhạt (hover states)
+  },
+  secondary: {
+    main: '#F59E0B',      // Cam/Vàng (vé ticket)
+    light: '#FBBF24',     // Vàng sáng
+    dark: '#D97706',      // Cam đậm
+  },
+  background: {
+    default: '#F8F5FF',   // Tím rất nhạt (background)
+    paper: '#FFFFFF',
+    accent: '#F3F0FF',    // Tím nhạt (sections)
+  },
+  text: {
+    primary: '#1E1B4B',   // Tím đen
+    secondary: '#6B7280', // Xám
+  },
+};
+
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#1976d2',
-      light: '#42a5f5',
-      dark: '#1565c0',
-      contrastText: '#fff',
+      main: colors.primary.main,
+      light: colors.primary.light,
+      dark: colors.primary.dark,
+      lighter: colors.primary.lighter,
+      contrastText: '#FFFFFF',
     },
     secondary: {
-      main: '#dc004e',
-      light: '#ff4081',
-      dark: '#c51162',
-      contrastText: '#fff',
+      main: colors.secondary.main,
+      light: colors.secondary.light,
+      dark: colors.secondary.dark,
+      contrastText: '#FFFFFF',
     },
     background: {
-      default: '#f5f5f5',
-      paper: '#fff',
+      default: colors.background.default,
+      paper: colors.background.paper,
     },
     text: {
-      primary: '#212121',
-      secondary: '#757575',
+      primary: colors.text.primary,
+      secondary: colors.text.secondary,
     },
     success: {
-      main: '#2e7d32',
+      main: '#10B981',
+      light: '#D1FAE5',
     },
     error: {
-      main: '#d32f2f',
+      main: '#EF4444',
+      light: '#FEE2E2',
     },
     warning: {
-      main: '#ed6c02',
+      main: '#F59E0B',
+      light: '#FEF3C7',
     },
     info: {
-      main: '#0288d1',
+      main: '#7C3AED',
+      light: '#EDE9FE',
+    },
+    // Custom colors for easy access
+    ticketgo: {
+      purple: colors.primary.main,
+      purpleLight: colors.primary.light,
+      orange: colors.secondary.main,
+      bgLight: colors.background.accent,
     },
   },
   typography: {
-    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
     h1: {
       fontSize: '2.5rem',
       fontWeight: 700,
+      color: colors.text.primary,
     },
     h2: {
       fontSize: '2rem',
       fontWeight: 600,
+      color: colors.text.primary,
     },
     h3: {
       fontSize: '1.75rem',
       fontWeight: 600,
+      color: colors.text.primary,
     },
     h4: {
       fontSize: '1.5rem',
       fontWeight: 600,
+      color: colors.text.primary,
     },
     h5: {
       fontSize: '1.25rem',
       fontWeight: 500,
+      color: colors.text.primary,
     },
     h6: {
       fontSize: '1rem',
       fontWeight: 500,
+      color: colors.text.primary,
     },
     button: {
       textTransform: 'none',
-      fontWeight: 500,
+      fontWeight: 600,
     },
   },
   shape: {
@@ -74,12 +116,32 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: 8,
-          padding: '8px 16px',
+          padding: '10px 20px',
+          fontWeight: 600,
         },
         contained: {
           boxShadow: 'none',
           '&:hover': {
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            boxShadow: '0 4px 12px rgba(94, 53, 177, 0.3)',
+          },
+        },
+        containedPrimary: {
+          background: `linear-gradient(135deg, ${colors.primary.main} 0%, ${colors.primary.light} 100%)`,
+          '&:hover': {
+            background: `linear-gradient(135deg, ${colors.primary.dark} 0%, ${colors.primary.main} 100%)`,
+          },
+        },
+        containedSecondary: {
+          background: `linear-gradient(135deg, ${colors.secondary.main} 0%, ${colors.secondary.light} 100%)`,
+          '&:hover': {
+            background: `linear-gradient(135deg, ${colors.secondary.dark} 0%, ${colors.secondary.main} 100%)`,
+          },
+        },
+        outlinedPrimary: {
+          borderColor: colors.primary.main,
+          '&:hover': {
+            backgroundColor: colors.primary.lighter,
+            borderColor: colors.primary.main,
           },
         },
       },
@@ -87,8 +149,12 @@ const theme = createTheme({
     MuiCard: {
       styleOverrides: {
         root: {
-          borderRadius: 12,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+          borderRadius: 16,
+          boxShadow: '0 4px 20px rgba(94, 53, 177, 0.08)',
+          '&:hover': {
+            boxShadow: '0 8px 30px rgba(94, 53, 177, 0.12)',
+          },
+          transition: 'box-shadow 0.3s ease',
         },
       },
     },
@@ -97,6 +163,12 @@ const theme = createTheme({
         root: {
           '& .MuiOutlinedInput-root': {
             borderRadius: 8,
+            '&:hover fieldset': {
+              borderColor: colors.primary.light,
+            },
+            '&.Mui-focused fieldset': {
+              borderColor: colors.primary.main,
+            },
           },
         },
       },
@@ -104,14 +176,78 @@ const theme = createTheme({
     MuiPaper: {
       styleOverrides: {
         rounded: {
-          borderRadius: 12,
+          borderRadius: 16,
         },
       },
     },
     MuiChip: {
       styleOverrides: {
         root: {
-          borderRadius: 6,
+          borderRadius: 8,
+          fontWeight: 500,
+        },
+        colorPrimary: {
+          backgroundColor: colors.primary.lighter,
+          color: colors.primary.main,
+        },
+        colorSecondary: {
+          backgroundColor: '#FEF3C7',
+          color: colors.secondary.dark,
+        },
+      },
+    },
+    MuiAppBar: {
+      styleOverrides: {
+        root: {
+          backgroundColor: '#FFFFFF',
+          color: colors.text.primary,
+        },
+      },
+    },
+    MuiTab: {
+      styleOverrides: {
+        root: {
+          textTransform: 'none',
+          fontWeight: 600,
+          '&.Mui-selected': {
+            color: colors.primary.main,
+          },
+        },
+      },
+    },
+    MuiTabs: {
+      styleOverrides: {
+        indicator: {
+          backgroundColor: colors.primary.main,
+          height: 3,
+          borderRadius: '3px 3px 0 0',
+        },
+      },
+    },
+    MuiAvatar: {
+      styleOverrides: {
+        root: {
+          backgroundColor: colors.primary.main,
+        },
+      },
+    },
+    MuiAlert: {
+      styleOverrides: {
+        standardSuccess: {
+          backgroundColor: '#D1FAE5',
+          color: '#065F46',
+        },
+        standardError: {
+          backgroundColor: '#FEE2E2',
+          color: '#991B1B',
+        },
+        standardWarning: {
+          backgroundColor: '#FEF3C7',
+          color: '#92400E',
+        },
+        standardInfo: {
+          backgroundColor: '#EDE9FE',
+          color: colors.primary.dark,
         },
       },
     },

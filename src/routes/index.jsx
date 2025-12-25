@@ -1,13 +1,10 @@
 import { createBrowserRouter } from 'react-router-dom';
-import { MainLayout, AuthLayout } from '@/components/layout';
+import { MainLayout } from '@/components/layout';
 import PrivateRoute from './PrivateRoute';
-import PublicRoute from './PublicRoute';
-import { ROUTES, ROLES } from '@/utils/constants';
+import { ROLES } from '@/utils/constants';
 
-// Lazy load pages
+// Pages
 import { HomePage } from '@/features/events';
-import LoginPage from '@/features/auth/pages/LoginPage';
-import RegisterPage from '@/features/auth/pages/RegisterPage';
 
 const router = createBrowserRouter([
   {
@@ -30,7 +27,7 @@ const router = createBrowserRouter([
         path: 'my-tickets',
         element: (
           <PrivateRoute>
-            <HomePage /> {/* Placeholder */}
+            <HomePage />
           </PrivateRoute>
         ),
       },
@@ -38,62 +35,37 @@ const router = createBrowserRouter([
         path: 'profile',
         element: (
           <PrivateRoute>
-            <HomePage /> {/* Placeholder */}
+            <HomePage />
           </PrivateRoute>
         ),
       },
-      // Organizer routes
       {
-        path: 'organizer',
+        path: 'organizer/*',
         element: (
           <PrivateRoute roles={[ROLES.ORGANIZER, ROLES.ADMIN]}>
-            <HomePage /> {/* Placeholder */}
+            <HomePage />
           </PrivateRoute>
         ),
       },
-      // Admin routes
       {
-        path: 'admin',
+        path: 'admin/*',
         element: (
           <PrivateRoute roles={[ROLES.ADMIN]}>
-            <HomePage /> {/* Placeholder */}
+            <HomePage />
           </PrivateRoute>
-        ),
-      },
-    ],
-  },
-  {
-    element: <AuthLayout />,
-    children: [
-      {
-        path: 'login',
-        element: (
-          <PublicRoute restricted>
-            <LoginPage />
-          </PublicRoute>
-        ),
-      },
-      {
-        path: 'register',
-        element: (
-          <PublicRoute restricted>
-            <RegisterPage />
-          </PublicRoute>
-        ),
-      },
-      {
-        path: 'forgot-password',
-        element: (
-          <PublicRoute restricted>
-            <HomePage /> {/* Placeholder */}
-          </PublicRoute>
         ),
       },
     ],
   },
   {
     path: '*',
-    element: <HomePage />, // 404 Placeholder
+    element: <MainLayout />,
+    children: [
+      {
+        path: '*',
+        element: <HomePage />, // 404 Placeholder
+      },
+    ],
   },
 ]);
 

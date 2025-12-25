@@ -2,34 +2,66 @@ import { Link } from 'react-router-dom';
 import { Box, Container, Typography, Grid, IconButton } from '@mui/material';
 import { Facebook, Instagram, Twitter, YouTube } from '@mui/icons-material';
 import { ROUTES } from '@/utils/constants';
+import { Logo } from '@/assets/brand';
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
 
   return (
-    <Box component="footer" className="bg-gray-900 text-white mt-auto">
-      <Container maxWidth="lg" className="py-12">
+    <Box 
+      component="footer" 
+      sx={{ 
+        bgcolor: '#1E1B4B', // Tím đen từ theme
+        color: 'white',
+        mt: 'auto' 
+      }}
+    >
+      <Container maxWidth="lg" sx={{ py: 6 }}>
         <Grid container spacing={4}>
           {/* Brand */}
           <Grid size={{ xs: 12, md: 4 }}>
-            <Typography variant="h5" className="font-bold text-blue-400 mb-4">
-              TicketGo
-            </Typography>
-            <Typography variant="body2" className="text-gray-400 mb-4">
+            <Box sx={{ mb: 2 }}>
+              <Logo size="md" />
+            </Box>
+            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.6)', mb: 2 }}>
               Nền tảng đặt vé sự kiện hàng đầu Việt Nam. 
               Trải nghiệm đặt vé nhanh chóng, an toàn và tiện lợi.
             </Typography>
-            <Box className="flex gap-2">
-              <IconButton size="small" className="text-gray-400 hover:text-white">
+            <Box className="flex gap-1">
+              <IconButton 
+                size="small" 
+                sx={{ 
+                  color: 'rgba(255,255,255,0.6)',
+                  '&:hover': { color: '#A78BFA' }
+                }}
+              >
                 <Facebook />
               </IconButton>
-              <IconButton size="small" className="text-gray-400 hover:text-white">
+              <IconButton 
+                size="small" 
+                sx={{ 
+                  color: 'rgba(255,255,255,0.6)',
+                  '&:hover': { color: '#A78BFA' }
+                }}
+              >
                 <Instagram />
               </IconButton>
-              <IconButton size="small" className="text-gray-400 hover:text-white">
+              <IconButton 
+                size="small" 
+                sx={{ 
+                  color: 'rgba(255,255,255,0.6)',
+                  '&:hover': { color: '#A78BFA' }
+                }}
+              >
                 <Twitter />
               </IconButton>
-              <IconButton size="small" className="text-gray-400 hover:text-white">
+              <IconButton 
+                size="small" 
+                sx={{ 
+                  color: 'rgba(255,255,255,0.6)',
+                  '&:hover': { color: '#A78BFA' }
+                }}
+              >
                 <YouTube />
               </IconButton>
             </Box>
@@ -37,71 +69,99 @@ const Footer = () => {
 
           {/* Quick Links */}
           <Grid size={{ xs: 6, md: 2 }}>
-            <Typography variant="subtitle1" className="font-semibold mb-4">
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
               Khám phá
             </Typography>
             <Box className="flex flex-col gap-2">
-              <Link to={ROUTES.EVENTS} className="text-gray-400 hover:text-white text-sm">
-                Sự kiện
-              </Link>
-              <Link to={ROUTES.EVENTS} className="text-gray-400 hover:text-white text-sm">
-                Âm nhạc
-              </Link>
-              <Link to={ROUTES.EVENTS} className="text-gray-400 hover:text-white text-sm">
-                Thể thao
-              </Link>
-              <Link to={ROUTES.EVENTS} className="text-gray-400 hover:text-white text-sm">
-                Nghệ thuật
-              </Link>
+              {['Sự kiện', 'Âm nhạc', 'Thể thao', 'Nghệ thuật'].map((item) => (
+                <Link 
+                  key={item}
+                  to={ROUTES.EVENTS} 
+                  style={{ 
+                    color: 'rgba(255,255,255,0.6)', 
+                    fontSize: '0.875rem',
+                    textDecoration: 'none',
+                  }}
+                  className="hover:text-purple-400"
+                >
+                  {item}
+                </Link>
+              ))}
             </Box>
           </Grid>
 
           {/* Support */}
           <Grid size={{ xs: 6, md: 2 }}>
-            <Typography variant="subtitle1" className="font-semibold mb-4">
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
               Hỗ trợ
             </Typography>
             <Box className="flex flex-col gap-2">
-              <Link to="#" className="text-gray-400 hover:text-white text-sm">
-                Trung tâm trợ giúp
-              </Link>
-              <Link to="#" className="text-gray-400 hover:text-white text-sm">
-                Liên hệ
-              </Link>
-              <Link to="#" className="text-gray-400 hover:text-white text-sm">
-                FAQ
-              </Link>
+              {['Trung tâm trợ giúp', 'Liên hệ', 'FAQ'].map((item) => (
+                <Link 
+                  key={item}
+                  to="#" 
+                  style={{ 
+                    color: 'rgba(255,255,255,0.6)', 
+                    fontSize: '0.875rem',
+                    textDecoration: 'none',
+                  }}
+                  className="hover:text-purple-400"
+                >
+                  {item}
+                </Link>
+              ))}
             </Box>
           </Grid>
 
           {/* Legal */}
           <Grid size={{ xs: 6, md: 2 }}>
-            <Typography variant="subtitle1" className="font-semibold mb-4">
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
               Pháp lý
             </Typography>
             <Box className="flex flex-col gap-2">
-              <Link to="#" className="text-gray-400 hover:text-white text-sm">
-                Điều khoản sử dụng
-              </Link>
-              <Link to="#" className="text-gray-400 hover:text-white text-sm">
-                Chính sách bảo mật
-              </Link>
-              <Link to="#" className="text-gray-400 hover:text-white text-sm">
-                Chính sách hoàn vé
-              </Link>
+              {['Điều khoản sử dụng', 'Chính sách bảo mật', 'Chính sách hoàn vé'].map((item) => (
+                <Link 
+                  key={item}
+                  to="#" 
+                  style={{ 
+                    color: 'rgba(255,255,255,0.6)', 
+                    fontSize: '0.875rem',
+                    textDecoration: 'none',
+                  }}
+                  className="hover:text-purple-400"
+                >
+                  {item}
+                </Link>
+              ))}
             </Box>
           </Grid>
 
           {/* For Organizers */}
           <Grid size={{ xs: 6, md: 2 }}>
-            <Typography variant="subtitle1" className="font-semibold mb-4">
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
               Đối tác
             </Typography>
             <Box className="flex flex-col gap-2">
-              <Link to={ROUTES.REGISTER} className="text-gray-400 hover:text-white text-sm">
+              <Link 
+                to="#" 
+                style={{ 
+                  color: 'rgba(255,255,255,0.6)', 
+                  fontSize: '0.875rem',
+                  textDecoration: 'none',
+                }}
+                className="hover:text-purple-400"
+              >
                 Đăng ký tổ chức
               </Link>
-              <Link to="#" className="text-gray-400 hover:text-white text-sm">
+              <Link 
+                to="#" 
+                style={{ 
+                  color: 'rgba(255,255,255,0.6)', 
+                  fontSize: '0.875rem',
+                  textDecoration: 'none',
+                }}
+                className="hover:text-purple-400"
+              >
                 Hướng dẫn tạo sự kiện
               </Link>
             </Box>
@@ -109,8 +169,8 @@ const Footer = () => {
         </Grid>
 
         {/* Copyright */}
-        <Box className="border-t border-gray-800 mt-8 pt-8 text-center">
-          <Typography variant="body2" className="text-gray-500">
+        <Box sx={{ borderTop: '1px solid rgba(255,255,255,0.1)', mt: 4, pt: 4, textAlign: 'center' }}>
+          <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.4)' }}>
             © {currentYear} TicketGo. All rights reserved.
           </Typography>
         </Box>
