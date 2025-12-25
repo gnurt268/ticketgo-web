@@ -13,7 +13,7 @@ export const login = createAsyncThunk(
       localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
       localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
 
-      return { user, accessToken };
+      return { user, accessToken: token };
     } catch (error) {
       return rejectWithValue(
         error.response?.data?.message || 'Đăng nhập thất bại'
