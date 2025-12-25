@@ -42,10 +42,9 @@ axiosInstance.interceptors.response.use(
             refreshToken,
           });
 
-          const { accessToken } = response.data;
-          localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
-
-          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+          const { token } = response.data;
+          localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, token);
+          originalRequest.headers.Authorization = `Bearer ${token}`;
           return axiosInstance(originalRequest);
         }
       } catch (refreshError) {
