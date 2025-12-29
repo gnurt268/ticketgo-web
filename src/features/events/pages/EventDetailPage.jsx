@@ -141,6 +141,8 @@ const EventDetailPage = () => {
         eventTitle: event.title,
         eventDate: event.startDate,
         eventVenue: event.venue,
+        eventAddress: event.address,
+        eventPosterUrl: event.posterUrl,
         selectedTickets,
         ticketZones: event.ticketZones,
       },

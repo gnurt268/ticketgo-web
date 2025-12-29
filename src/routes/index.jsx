@@ -5,6 +5,7 @@ import { ROLES } from '@/utils/constants';
 
 // Pages
 import { HomePage, EventListPage, EventDetailPage } from '@/features/events';
+import { CheckoutPage, PaymentSuccessPage, PaymentFailedPage } from '@/features/orders';
 
 const router = createBrowserRouter([
   {
@@ -43,7 +44,23 @@ const router = createBrowserRouter([
         path: 'checkout',
         element: (
           <PrivateRoute>
-            <HomePage /> {/* TODO: CheckoutPage */}
+            <CheckoutPage />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: 'payment/success',
+        element: (
+          <PrivateRoute>
+            <PaymentSuccessPage />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: 'payment/failed',
+        element: (
+          <PrivateRoute>
+            <PaymentFailedPage />
           </PrivateRoute>
         ),
       },
