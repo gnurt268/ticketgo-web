@@ -3,24 +3,24 @@ import { createTheme } from '@mui/material/styles';
 // TicketGo Color Palette - Based on Logo
 const colors = {
   primary: {
-    main: '#5E35B1',      // Tím đậm (chữ "Ticket")
-    light: '#7C3AED',     // Tím sáng (chữ "GO")
-    dark: '#4527A0',      // Tím đậm hơn
-    lighter: '#EDE7F6',   // Tím rất nhạt (hover states)
+    main: '#5E35B1',
+    light: '#7C3AED',
+    dark: '#4527A0',
+    lighter: '#EDE7F6',
   },
   secondary: {
-    main: '#F59E0B',      // Cam/Vàng (vé ticket)
-    light: '#FBBF24',     // Vàng sáng
-    dark: '#D97706',      // Cam đậm
+    main: '#F59E0B',
+    light: '#FBBF24',
+    dark: '#D97706',
   },
   background: {
-    default: '#F8F5FF',   // Tím rất nhạt (background)
+    default: '#F8F5FF',
     paper: '#FFFFFF',
-    accent: '#F3F0FF',    // Tím nhạt (sections)
+    accent: '#F3F0FF',
   },
   text: {
-    primary: '#1E1B4B',   // Tím đen
-    secondary: '#6B7280', // Xám
+    primary: '#1E1B4B',
+    secondary: '#6B7280',
   },
 };
 
@@ -50,18 +50,22 @@ const theme = createTheme({
     success: {
       main: '#10B981',
       light: '#D1FAE5',
+      lighter: '#ECFDF5',
     },
     error: {
       main: '#EF4444',
       light: '#FEE2E2',
+      lighter: '#FEF2F2',
     },
     warning: {
       main: '#F59E0B',
       light: '#FEF3C7',
+      lighter: '#FFFBEB',
     },
     info: {
       main: '#7C3AED',
       light: '#EDE9FE',
+      lighter: '#F5F3FF',
     },
     // Custom colors for easy access
     ticketgo: {

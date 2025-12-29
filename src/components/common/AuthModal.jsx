@@ -230,8 +230,6 @@ const AuthModal = ({ open, onClose, defaultTab = 0 }) => {
           closePopup();
           handleClose();
         });
-      } else if (result.meta.requestStatus === 'rejected') {
-        showErrorPopup(result.payload || 'Đăng nhập thất bại');
       }
     } catch (err) {
       showErrorPopup('Đã có lỗi xảy ra');
@@ -248,8 +246,6 @@ const AuthModal = ({ open, onClose, defaultTab = 0 }) => {
           setTab(0);
           registerForm.reset();
         });
-      } else if (result.meta.requestStatus === 'rejected') {
-        showErrorPopup(result.payload || 'Đăng ký thất bại');
       }
     } catch (err) {
       showErrorPopup('Đã có lỗi xảy ra');
@@ -376,6 +372,7 @@ const AuthModal = ({ open, onClose, defaultTab = 0 }) => {
                   endAdornment: (
                     <InputAdornment position="end">
                       <IconButton
+                        tabIndex={-1}
                         onClick={() => setShowPassword(!showPassword)}
                         edge="end"
                         size="small"
@@ -476,6 +473,7 @@ const AuthModal = ({ open, onClose, defaultTab = 0 }) => {
                   endAdornment: (
                     <InputAdornment position="end">
                       <IconButton
+                        tabIndex={-1}
                         onClick={() => setShowPassword(!showPassword)}
                         edge="end"
                         size="small"
@@ -498,6 +496,7 @@ const AuthModal = ({ open, onClose, defaultTab = 0 }) => {
                   endAdornment: (
                     <InputAdornment position="end">
                       <IconButton
+                        tabIndex={-1}
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                         edge="end"
                         size="small"
