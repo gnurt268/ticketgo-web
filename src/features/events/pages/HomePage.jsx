@@ -385,7 +385,7 @@ const HeroCarousel = ({ events, loading }) => {
                   variant="contained"
                   sx={{
                     bgcolor: 'white',
-                    color: 'primary.main',
+                    color: 'secondary.main',
                     fontWeight: 600,
                     px: 3,
                     py: 1,

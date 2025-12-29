@@ -4,7 +4,7 @@ import PrivateRoute from './PrivateRoute';
 import { ROLES } from '@/utils/constants';
 
 // Pages
-import { HomePage } from '@/features/events';
+import { HomePage, EventListPage, EventDetailPage } from '@/features/events';
 
 const router = createBrowserRouter([
   {
@@ -17,17 +17,17 @@ const router = createBrowserRouter([
       },
       {
         path: 'events',
-        element: <HomePage />, // Placeholder
+        element: <EventListPage />,
       },
       {
         path: 'events/:id',
-        element: <HomePage />, // Placeholder
+        element: <EventDetailPage />,
       },
       {
         path: 'my-tickets',
         element: (
           <PrivateRoute>
-            <HomePage />
+            <HomePage /> {/* TODO: MyTicketsPage */}
           </PrivateRoute>
         ),
       },
@@ -35,7 +35,15 @@ const router = createBrowserRouter([
         path: 'profile',
         element: (
           <PrivateRoute>
-            <HomePage />
+            <HomePage /> {/* TODO: ProfilePage */}
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: 'checkout',
+        element: (
+          <PrivateRoute>
+            <HomePage /> {/* TODO: CheckoutPage */}
           </PrivateRoute>
         ),
       },
@@ -43,7 +51,7 @@ const router = createBrowserRouter([
         path: 'organizer/*',
         element: (
           <PrivateRoute roles={[ROLES.ORGANIZER, ROLES.ADMIN]}>
-            <HomePage />
+            <HomePage /> {/* TODO: OrganizerPages */}
           </PrivateRoute>
         ),
       },
@@ -51,7 +59,7 @@ const router = createBrowserRouter([
         path: 'admin/*',
         element: (
           <PrivateRoute roles={[ROLES.ADMIN]}>
-            <HomePage />
+            <HomePage /> {/* TODO: AdminPages */}
           </PrivateRoute>
         ),
       },

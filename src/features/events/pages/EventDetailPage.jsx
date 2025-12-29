@@ -1,0 +1,607 @@
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import {
+  Box,
+  Container,
+  Typography,
+  Grid,
+  Button,
+  Chip,
+  Divider,
+  Paper,
+  Avatar,
+  Skeleton,
+  IconButton,
+  Breadcrumbs,
+  Alert,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+} from '@mui/material';
+import {
+  CalendarMonth,
+  LocationOn,
+  AccessTime,
+  Share,
+  FavoriteBorder,
+  Favorite,
+  ExpandMore,
+  ConfirmationNumber,
+  Add,
+  Remove,
+  NavigateNext,
+  Person,
+  Info,
+} from '@mui/icons-material';
+import eventAPI from '../eventAPI';
+import { EventCard, EventCardSkeleton } from '../components';
+import { formatDate, formatCurrency } from '@/utils/helpers';
+import { useAuth } from '@/hooks';
+
+const EventDetailPage = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+
+  // State
+  const [event, setEvent] = useState(null);
+  const [relatedEvents, setRelatedEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [selectedTickets, setSelectedTickets] = useState({});
+
+  // Fetch event detail
+  useEffect(() => {
+    const fetchEvent = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        // Check if id is slug or numeric id
+        const isSlug = isNaN(parseInt(id, 10));
+        const response = isSlug
+          ? await eventAPI.getEventDetailBySlug(id)
+          : await eventAPI.getEventDetail(id);
+        
+        setEvent(response.data);
+
+        // Fetch related events
+        if (response.data?.id) {
+          const relatedRes = await eventAPI.getRelatedEvents(response.data.id, 4);
+          setRelatedEvents(relatedRes.data || []);
+        }
+      } catch (err) {
+        console.error('Error fetching event:', err);
+        setError('Không tìm thấy sự kiện này');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) {
+      fetchEvent();
+      window.scrollTo(0, 0);
+    }
+  }, [id]);
+
+  // Handle ticket quantity change
+  const handleTicketChange = (zoneId, delta) => {
+    setSelectedTickets((prev) => {
+      const current = prev[zoneId] || 0;
+      const newValue = Math.max(0, Math.min(current + delta, 10)); // Max 10 per zone
+      
+      if (newValue === 0) {
+        const { [zoneId]: _, ...rest } = prev;
+        return rest;
+      }
+      
+      return { ...prev, [zoneId]: newValue };
+    });
+  };
+
+  // Calculate total
+  const calculateTotal = () => {
+    if (!event?.ticketZones) return { quantity: 0, amount: 0 };
+    
+    let quantity = 0;
+    let amount = 0;
+    
+    Object.entries(selectedTickets).forEach(([zoneId, qty]) => {
+      const zone = event.ticketZones.find((z) => z.id === parseInt(zoneId, 10));
+      if (zone) {
+        quantity += qty;
+        amount += zone.price * qty;
+      }
+    });
+    
+    return { quantity, amount };
+  };
+
+  // Handle checkout
+  const handleCheckout = () => {
+    if (!isAuthenticated) {
+      // TODO: Show auth modal
+      navigate('/login', { state: { from: `/events/${id}` } });
+      return;
+    }
+
+    const total = calculateTotal();
+    if (total.quantity === 0) return;
+
+    // Navigate to checkout with selected tickets
+    navigate('/checkout', {
+      state: {
+        eventId: event.id,
+        eventTitle: event.title,
+        eventDate: event.startDate,
+        eventVenue: event.venue,
+        selectedTickets,
+        ticketZones: event.ticketZones,
+      },
+    });
+  };
+
+  // Share event
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: event.title,
+          text: `Xem sự kiện ${event.title} trên TicketGo`,
+          url: window.location.href,
+        });
+      } catch (err) {
+        console.log('Share cancelled');
+      }
+    } else {
+      // Fallback: copy to clipboard
+      navigator.clipboard.writeText(window.location.href);
+      alert('Đã copy link!');
+    }
+  };
+
+  const total = calculateTotal();
+
+  // Loading state
+  if (loading) {
+    return (
+      <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', py: 4 }}>
+        <Container maxWidth="lg">
+          <Skeleton variant="rectangular" height={400} sx={{ borderRadius: 3, mb: 4 }} />
+          <Grid container spacing={4}>
+            <Grid size={{ xs: 12, md: 8 }}>
+              <Skeleton variant="text" height={60} />
+              <Skeleton variant="text" height={30} width="60%" />
+              <Skeleton variant="rectangular" height={200} sx={{ mt: 2 }} />
+            </Grid>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <Skeleton variant="rectangular" height={300} sx={{ borderRadius: 2 }} />
+            </Grid>
+          </Grid>
+        </Container>
+      </Box>
+    );
+  }
+
+  // Error state
+  if (error || !event) {
+    return (
+      <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', py: 10 }}>
+        <Container maxWidth="sm">
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography variant="h5" color="error" gutterBottom>
+              {error || 'Không tìm thấy sự kiện'}
+            </Typography>
+            <Button variant="contained" component={Link} to="/events" sx={{ mt: 2 }}>
+              Quay lại danh sách
+            </Button>
+          </Box>
+        </Container>
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', pb: 6 }}>
+      {/* Banner */}
+      <Box
+        sx={{
+          position: 'relative',
+          height: { xs: 250, md: 400 },
+          overflow: 'hidden',
+        }}
+      >
+        <Box
+          component="img"
+          src={event.bannerUrl || event.posterUrl}
+          alt={event.title}
+          sx={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+          }}
+        />
+        <Box
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 50%)',
+          }}
+        />
+      </Box>
+
+      <Container maxWidth="lg" sx={{ mt: -8, position: 'relative', zIndex: 1 }}>
+        {/* Breadcrumb */}
+        <Breadcrumbs
+          separator={<NavigateNext fontSize="small" sx={{ color: 'rgba(255,255,255,0.7)' }} />}
+          sx={{ mb: 2 }}
+        >
+          <Link to="/" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none' }}>
+            Trang chủ
+          </Link>
+          <Link to="/events" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none' }}>
+            Sự kiện
+          </Link>
+          <Typography sx={{ color: 'white' }}>{event.categoryName}</Typography>
+        </Breadcrumbs>
+
+        <Grid container spacing={4}>
+          {/* Left Column - Event Info */}
+          <Grid size={{ xs: 12, md: 8 }}>
+            {/* Main Card */}
+            <Paper sx={{ borderRadius: 3, overflow: 'hidden', mb: 3 }}>
+              {/* Header */}
+              <Box sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                  <Chip label={event.categoryName} color="primary" size="small" />
+                  {event.isFeatured && (
+                    <Chip label="🔥 Hot" color="secondary" size="small" />
+                  )}
+                  {event.isSoldOut && (
+                    <Chip label="Hết vé" color="error" size="small" />
+                  )}
+                </Box>
+
+                <Typography variant="h4" sx={{ fontWeight: 700, mb: 2 }}>
+                  {event.title}
+                </Typography>
+
+                {/* Quick Info */}
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <CalendarMonth color="primary" />
+                    <Box>
+                      <Typography variant="body1" fontWeight={500}>
+                        {formatDate(event.startDate, 'dddd, DD/MM/YYYY')}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {formatDate(event.startDate, 'HH:mm')} - {formatDate(event.endDate, 'HH:mm')}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+                    <LocationOn color="secondary" />
+                    <Box>
+                      <Typography variant="body1" fontWeight={500}>
+                        {event.venue}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {event.address}, {event.city}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Box>
+
+                {/* Action Buttons */}
+                <Box sx={{ display: 'flex', gap: 1, mt: 3 }}>
+                  <IconButton onClick={() => setIsFavorite(!isFavorite)}>
+                    {isFavorite ? <Favorite color="error" /> : <FavoriteBorder />}
+                  </IconButton>
+                  <IconButton onClick={handleShare}>
+                    <Share />
+                  </IconButton>
+                </Box>
+              </Box>
+
+              <Divider />
+
+              {/* Description */}
+              <Box sx={{ p: 3 }}>
+                <Typography variant="h6" fontWeight={600} gutterBottom>
+                  Giới thiệu
+                </Typography>
+                <Typography
+                  variant="body1"
+                  color="text.secondary"
+                  sx={{ whiteSpace: 'pre-line' }}
+                >
+                  {event.description || 'Chưa có mô tả cho sự kiện này.'}
+                </Typography>
+              </Box>
+
+              <Divider />
+
+              {/* Organizer */}
+              <Box sx={{ p: 3 }}>
+                <Typography variant="h6" fontWeight={600} gutterBottom>
+                  Nhà tổ chức
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Avatar sx={{ width: 48, height: 48, bgcolor: 'primary.main' }}>
+                    <Person />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="body1" fontWeight={500}>
+                      {event.organizerName}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Đơn vị tổ chức
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+            </Paper>
+
+            {/* Ticket Zones */}
+            <Paper sx={{ borderRadius: 3, overflow: 'hidden', mb: 3 }}>
+              <Box sx={{ p: 3 }}>
+                <Typography variant="h6" fontWeight={600} gutterBottom>
+                  <ConfirmationNumber sx={{ mr: 1, verticalAlign: 'middle' }} />
+                  Chọn vé
+                </Typography>
+
+                {event.isSoldOut ? (
+                  <Alert severity="error" sx={{ mt: 2 }}>
+                    Sự kiện này đã hết vé
+                  </Alert>
+                ) : (
+                  <TableContainer sx={{ mt: 2 }}>
+                    <Table>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Loại vé</TableCell>
+                          <TableCell align="center">Giá</TableCell>
+                          <TableCell align="center">Còn lại</TableCell>
+                          <TableCell align="center">Số lượng</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {event.ticketZones?.map((zone) => {
+                          const isAvailable = zone.availableCapacity > 0;
+                          const quantity = selectedTickets[zone.id] || 0;
+
+                          return (
+                            <TableRow key={zone.id}>
+                              <TableCell>
+                                <Box>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <Box
+                                      sx={{
+                                        width: 12,
+                                        height: 12,
+                                        borderRadius: '50%',
+                                        bgcolor: zone.colorCode || 'primary.main',
+                                      }}
+                                    />
+                                    <Typography fontWeight={500}>{zone.zoneName}</Typography>
+                                  </Box>
+                                  {zone.description && (
+                                    <Typography variant="caption" color="text.secondary">
+                                      {zone.description}
+                                    </Typography>
+                                  )}
+                                </Box>
+                              </TableCell>
+                              <TableCell align="center">
+                                <Typography fontWeight={600} color="primary.main">
+                                  {formatCurrency(zone.price)}
+                                </Typography>
+                              </TableCell>
+                              <TableCell align="center">
+                                <Chip
+                                  label={isAvailable ? zone.availableCapacity : 'Hết'}
+                                  size="small"
+                                  color={isAvailable ? 'success' : 'error'}
+                                  variant="outlined"
+                                />
+                              </TableCell>
+                              <TableCell align="center">
+                                {isAvailable ? (
+                                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                                    <IconButton
+                                      size="small"
+                                      onClick={() => handleTicketChange(zone.id, -1)}
+                                      disabled={quantity === 0}
+                                    >
+                                      <Remove fontSize="small" />
+                                    </IconButton>
+                                    <Typography sx={{ minWidth: 30, textAlign: 'center' }}>
+                                      {quantity}
+                                    </Typography>
+                                    <IconButton
+                                      size="small"
+                                      onClick={() => handleTicketChange(zone.id, 1)}
+                                      disabled={quantity >= 10 || quantity >= zone.availableCapacity}
+                                    >
+                                      <Add fontSize="small" />
+                                    </IconButton>
+                                  </Box>
+                                ) : (
+                                  <Typography color="error" variant="body2">
+                                    Hết vé
+                                  </Typography>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                )}
+              </Box>
+            </Paper>
+
+            {/* Event Info Accordion */}
+            <Paper sx={{ borderRadius: 3, overflow: 'hidden' }}>
+              <Accordion defaultExpanded>
+                <AccordionSummary expandIcon={<ExpandMore />}>
+                  <Typography fontWeight={600}>Thông tin thêm</Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Grid container spacing={2}>
+                    <Grid size={{ xs: 6 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Loại sự kiện
+                      </Typography>
+                      <Typography>{event.eventType === 'OUTDOOR' ? 'Ngoài trời' : 'Trong nhà'}</Typography>
+                    </Grid>
+                    <Grid size={{ xs: 6 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Số vé tối đa/đơn
+                      </Typography>
+                      <Typography>{event.maxTicketsPerOrder} vé</Typography>
+                    </Grid>
+                    <Grid size={{ xs: 6 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Lượt xem
+                      </Typography>
+                      <Typography>{event.viewCount?.toLocaleString()}</Typography>
+                    </Grid>
+                    <Grid size={{ xs: 6 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Đánh giá
+                      </Typography>
+                      <Typography>
+                        {event.averageRating > 0 ? `${event.averageRating}/5 (${event.totalReviews} đánh giá)` : 'Chưa có đánh giá'}
+                      </Typography>
+                    </Grid>
+                  </Grid>
+                </AccordionDetails>
+              </Accordion>
+            </Paper>
+          </Grid>
+
+          {/* Right Column - Booking Summary */}
+          <Grid size={{ xs: 12, md: 4 }}>
+            <Paper
+              sx={{
+                borderRadius: 3,
+                p: 3,
+                position: 'sticky',
+                top: 100,
+              }}
+            >
+              <Typography variant="h6" fontWeight={600} gutterBottom>
+                Đơn hàng của bạn
+              </Typography>
+
+              {total.quantity > 0 ? (
+                <>
+                  {/* Selected Tickets */}
+                  <Box sx={{ my: 2 }}>
+                    {Object.entries(selectedTickets).map(([zoneId, qty]) => {
+                      const zone = event.ticketZones?.find((z) => z.id === parseInt(zoneId, 10));
+                      if (!zone) return null;
+
+                      return (
+                        <Box
+                          key={zoneId}
+                          sx={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            py: 1,
+                            borderBottom: '1px solid',
+                            borderColor: 'divider',
+                          }}
+                        >
+                          <Box>
+                            <Typography variant="body2" fontWeight={500}>
+                              {zone.zoneName}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {qty} x {formatCurrency(zone.price)}
+                            </Typography>
+                          </Box>
+                          <Typography fontWeight={500}>
+                            {formatCurrency(zone.price * qty)}
+                          </Typography>
+                        </Box>
+                      );
+                    })}
+                  </Box>
+
+                  <Divider sx={{ my: 2 }} />
+
+                  {/* Total */}
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+                    <Typography variant="body1" fontWeight={600}>
+                      Tổng cộng ({total.quantity} vé)
+                    </Typography>
+                    <Typography variant="h6" color="primary.main" fontWeight={700}>
+                      {formatCurrency(total.amount)}
+                    </Typography>
+                  </Box>
+
+                  <Button
+                    variant="contained"
+                    fullWidth
+                    size="large"
+                    onClick={handleCheckout}
+                    sx={{
+                      py: 1.5,
+                      fontWeight: 600,
+                      fontSize: '1rem',
+                    }}
+                  >
+                    Đặt vé ngay
+                  </Button>
+                </>
+              ) : (
+                <Box sx={{ textAlign: 'center', py: 4 }}>
+                  <ConfirmationNumber sx={{ fontSize: 48, color: 'grey.300', mb: 1 }} />
+                  <Typography color="text.secondary">
+                    Chọn vé để tiếp tục
+                  </Typography>
+                </Box>
+              )}
+
+              {/* Info */}
+              <Alert severity="info" sx={{ mt: 2 }} icon={<Info />}>
+                <Typography variant="caption">
+                  Vé sẽ được giữ trong 15 phút sau khi bạn tiến hành thanh toán
+                </Typography>
+              </Alert>
+            </Paper>
+          </Grid>
+        </Grid>
+
+        {/* Related Events */}
+        {relatedEvents.length > 0 && (
+          <Box sx={{ mt: 6 }}>
+            <Typography variant="h5" fontWeight={700} gutterBottom>
+              Sự kiện liên quan
+            </Typography>
+            <Grid container spacing={3}>
+              {relatedEvents.map((event) => (
+                <Grid size={{ xs: 12, sm: 6, md: 3 }} key={event.id}>
+                  <EventCard event={event} />
+                </Grid>
+              ))}
+            </Grid>
+          </Box>
+        )}
+      </Container>
+    </Box>
+  );
+};
+
+export default EventDetailPage;
