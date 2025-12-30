@@ -7,8 +7,18 @@ import { ROLES } from '@/utils/constants';
 import { HomePage, EventListPage, EventDetailPage } from '@/features/events';
 import { CheckoutPage, PaymentSuccessPage, PaymentFailedPage } from '@/features/orders';
 import { MyTicketsPage } from '@/features/tickets';
+import { CheckInPage } from '@/features/checkin';
 
 const router = createBrowserRouter([
+  {
+    path: '/checkin',
+    element: (
+      <PrivateRoute roles={[ROLES.STAFF, ROLES.ORGANIZER, ROLES.ADMIN]}>
+        <CheckInPage />
+      </PrivateRoute>
+    ),
+  },
+  // Main layout routes
   {
     path: '/',
     element: <MainLayout />,

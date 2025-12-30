@@ -19,6 +19,7 @@ export const ROUTES = {
   CHECKOUT: '/checkout',
   MY_TICKETS: '/my-tickets',
   PROFILE: '/profile',
+  CHECK_IN: '/checkin',
   
   // Organizer
   ORGANIZER_DASHBOARD: '/organizer',
@@ -35,6 +36,7 @@ export const ROUTES = {
 // Roles
 export const ROLES = {
   USER: 'USER',
+  STAFF: 'STAFF',
   ORGANIZER: 'ORGANIZER',
   ADMIN: 'ADMIN',
 };

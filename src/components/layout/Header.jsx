@@ -31,6 +31,7 @@ import {
   Event,
   Close,
   KeyboardArrowDown,
+  QrCodeScanner,
 } from '@mui/icons-material';
 import { logout, selectUser, selectIsAuthenticated } from '@/features/auth';
 import { ROUTES, ROLES } from '@/utils/constants';
@@ -136,6 +137,12 @@ const Header = () => {
       icon: <AccountCircle />,
       path: ROUTES.PROFILE,
       show: true,
+    },
+    {
+      label: 'Check-in Scanner',
+      icon: <QrCodeScanner />,
+      path: ROUTES.CHECK_IN,
+      show: user?.role === ROLES.STAFF || user?.role === ROLES.ORGANIZER || user?.role === ROLES.ADMIN,
     },
     {
       label: 'Quản lý sự kiện',
