@@ -118,10 +118,10 @@ const Header = () => {
   };
 
   const categories = [
-    { label: 'Nhạc sống', value: 'music', icon: '🎵' },
-    { label: 'Sân khấu & Nghệ thuật', value: 'stage', icon: '🎭' },
-    { label: 'Thể thao', value: 'sport', icon: '⚽' },
-    { label: 'Khác', value: 'other', icon: '🎪' },
+    { label: 'Nhạc sống', value: '1', icon: '🎵' },
+    { label: 'Sân khấu & Nghệ thuật', value: '2', icon: '🎭' },
+    { label: 'Thể thao', value: '3', icon: '⚽' },
+    { label: 'Khác', value: '4', icon: '🎪' },
   ];
 
   const menuItems = [
