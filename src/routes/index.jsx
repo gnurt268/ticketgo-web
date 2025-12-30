@@ -6,6 +6,7 @@ import { ROLES } from '@/utils/constants';
 // Pages
 import { HomePage, EventListPage, EventDetailPage } from '@/features/events';
 import { CheckoutPage, PaymentSuccessPage, PaymentFailedPage } from '@/features/orders';
+import { MyTicketsPage } from '@/features/tickets';
 
 const router = createBrowserRouter([
   {
@@ -28,7 +29,7 @@ const router = createBrowserRouter([
         path: 'my-tickets',
         element: (
           <PrivateRoute>
-            <HomePage /> {/* TODO: MyTicketsPage */}
+            <MyTicketsPage />
           </PrivateRoute>
         ),
       },
