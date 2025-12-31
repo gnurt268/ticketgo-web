@@ -1,42 +1,74 @@
-import { createBrowserRouter } from 'react-router-dom';
-import { MainLayout } from '@/components/layout';
-import PrivateRoute from './PrivateRoute';
-import { ROLES } from '@/utils/constants';
+import { createBrowserRouter } from "react-router-dom";
+import { MainLayout } from "@/components/layout";
+import PrivateRoute from "./PrivateRoute";
+import { ROLES } from "@/utils/constants";
 
 // Pages
-import { HomePage, EventListPage, EventDetailPage } from '@/features/events';
-import { CheckoutPage, PaymentSuccessPage, PaymentFailedPage } from '@/features/orders';
-import { MyTicketsPage } from '@/features/tickets';
-import { CheckInPage } from '@/features/checkin';
+import { HomePage, EventListPage, EventDetailPage } from "@/features/events";
+import {
+  CheckoutPage,
+  PaymentSuccessPage,
+  PaymentFailedPage,
+} from "@/features/orders";
+import { MyTicketsPage } from "@/features/tickets";
+import { CheckInPage } from "@/features/checkin";
+
+// Admin Pages
+import AdminLayout from "@/components/admin/AdminLayout";
+import {
+  AdminDashboardPage,
+  UserManagementPage,
+  EventManagementPage,
+  OrderManagementPage,
+  CategoryManagementPage,
+  OrganizerRequestManagementPage,
+} from "@/features/admin";
 
 const router = createBrowserRouter([
+  // Check-in route (full screen)
   {
-    path: '/checkin',
+    path: "/checkin",
     element: (
       <PrivateRoute roles={[ROLES.STAFF, ROLES.ORGANIZER, ROLES.ADMIN]}>
         <CheckInPage />
       </PrivateRoute>
     ),
   },
+
+  // Admin routes with sidebar layout
+  {
+    path: "/admin",
+    element: (
+      <PrivateRoute roles={[ROLES.ADMIN]}>
+        <AdminLayout />
+      </PrivateRoute>
+    ),
+    children: [
+      { index: true, element: <AdminDashboardPage /> },
+      { path: "users", element: <UserManagementPage /> },
+      { path: "events", element: <EventManagementPage /> },
+      { path: "events/pending", element: <EventManagementPage /> },
+      { path: "events/approved", element: <EventManagementPage /> },
+      { path: "events/cancelled", element: <EventManagementPage /> },
+      { path: "orders", element: <OrderManagementPage /> },
+      { path: "categories", element: <CategoryManagementPage /> },
+      {
+        path: "organizer-requests",
+        element: <OrganizerRequestManagementPage />,
+      },
+    ],
+  },
+
   // Main layout routes
   {
-    path: '/',
+    path: "/",
     element: <MainLayout />,
     children: [
+      { index: true, element: <HomePage /> },
+      { path: "events", element: <EventListPage /> },
+      { path: "events/:id", element: <EventDetailPage /> },
       {
-        index: true,
-        element: <HomePage />,
-      },
-      {
-        path: 'events',
-        element: <EventListPage />,
-      },
-      {
-        path: 'events/:id',
-        element: <EventDetailPage />,
-      },
-      {
-        path: 'my-tickets',
+        path: "my-tickets",
         element: (
           <PrivateRoute>
             <MyTicketsPage />
@@ -44,15 +76,15 @@ const router = createBrowserRouter([
         ),
       },
       {
-        path: 'profile',
+        path: "profile",
         element: (
           <PrivateRoute>
-            <HomePage /> {/* TODO: ProfilePage */}
+            <HomePage />
           </PrivateRoute>
         ),
       },
       {
-        path: 'checkout',
+        path: "checkout",
         element: (
           <PrivateRoute>
             <CheckoutPage />
@@ -60,7 +92,7 @@ const router = createBrowserRouter([
         ),
       },
       {
-        path: 'payment/success',
+        path: "payment/success",
         element: (
           <PrivateRoute>
             <PaymentSuccessPage />
@@ -68,7 +100,7 @@ const router = createBrowserRouter([
         ),
       },
       {
-        path: 'payment/failed',
+        path: "payment/failed",
         element: (
           <PrivateRoute>
             <PaymentFailedPage />
@@ -76,32 +108,21 @@ const router = createBrowserRouter([
         ),
       },
       {
-        path: 'organizer/*',
+        path: "organizer/*",
         element: (
           <PrivateRoute roles={[ROLES.ORGANIZER, ROLES.ADMIN]}>
-            <HomePage /> {/* TODO: OrganizerPages */}
-          </PrivateRoute>
-        ),
-      },
-      {
-        path: 'admin/*',
-        element: (
-          <PrivateRoute roles={[ROLES.ADMIN]}>
-            <HomePage /> {/* TODO: AdminPages */}
+            <HomePage />
           </PrivateRoute>
         ),
       },
     ],
   },
+
+  // 404
   {
-    path: '*',
+    path: "*",
     element: <MainLayout />,
-    children: [
-      {
-        path: '*',
-        element: <HomePage />, // 404 Placeholder
-      },
-    ],
+    children: [{ path: "*", element: <HomePage /> }],
   },
 ]);
 

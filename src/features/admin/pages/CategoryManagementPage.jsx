@@ -1,0 +1,338 @@
+import { useState, useEffect, useCallback } from "react";
+import {
+  Box,
+  Paper,
+  Typography,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  IconButton,
+  Button,
+  TextField,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Alert,
+  Snackbar,
+  Skeleton,
+  Avatar,
+  Chip,
+  Tooltip,
+} from "@mui/material";
+import {
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Refresh as RefreshIcon,
+  Category as CategoryIcon,
+  Event as EventIcon,
+} from "@mui/icons-material";
+import {
+  getCategories,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+} from "../api/adminAPI";
+
+const CategoryManagementPage = () => {
+  const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState([]);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    iconUrl: "",
+  });
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+
+  const fetchCategories = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await getCategories();
+      setCategories(data || []);
+    } catch (error) {
+      showSnackbar("Lỗi khi tải danh sách", "error");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
+
+  const showSnackbar = (message, severity = "success") =>
+    setSnackbar({ open: true, message, severity });
+
+  const handleOpenDialog = (category = null) => {
+    if (category) {
+      setEditMode(true);
+      setSelectedCategory(category);
+      setFormData({
+        name: category.name,
+        description: category.description || "",
+        iconUrl: category.iconUrl || "",
+      });
+    } else {
+      setEditMode(false);
+      setSelectedCategory(null);
+      setFormData({ name: "", description: "", iconUrl: "" });
+    }
+    setDialogOpen(true);
+  };
+
+  const handleSave = async () => {
+    try {
+      if (editMode) {
+        await updateCategory(selectedCategory.id, formData);
+        showSnackbar("Cập nhật thành công");
+      } else {
+        await createCategory(formData);
+        showSnackbar("Tạo mới thành công");
+      }
+      setDialogOpen(false);
+      fetchCategories();
+    } catch (error) {
+      showSnackbar("Lỗi khi lưu", "error");
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      await deleteCategory(selectedCategory.id);
+      showSnackbar("Đã xóa category");
+      setDeleteDialogOpen(false);
+      fetchCategories();
+    } catch (error) {
+      showSnackbar("Không thể xóa category đang có events", "error");
+    }
+  };
+
+  return (
+    <Box>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 3,
+        }}
+      >
+        <Box>
+          <Typography variant="h4" fontWeight={700}>
+            Quản lý Categories
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Quản lý danh mục sự kiện
+          </Typography>
+        </Box>
+        <Box sx={{ display: "flex", gap: 1 }}>
+          <Button
+            variant="outlined"
+            startIcon={<RefreshIcon />}
+            onClick={fetchCategories}
+          >
+            Làm mới
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => handleOpenDialog()}
+          >
+            Thêm mới
+          </Button>
+        </Box>
+      </Box>
+
+      <Paper>
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow sx={{ bgcolor: "grey.50" }}>
+                <TableCell>ID</TableCell>
+                <TableCell>Tên Category</TableCell>
+                <TableCell>Mô tả</TableCell>
+                <TableCell>Số Events</TableCell>
+                <TableCell align="right">Hành động</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {loading ? (
+                [...Array(5)].map((_, i) => (
+                  <TableRow key={i}>
+                    {[...Array(5)].map((_, j) => (
+                      <TableCell key={j}>
+                        <Skeleton />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : categories.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} align="center" sx={{ py: 5 }}>
+                    <Typography color="text.secondary">
+                      Chưa có category nào
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                categories.map((cat) => (
+                  <TableRow key={cat.id} hover>
+                    <TableCell>{cat.id}</TableCell>
+                    <TableCell>
+                      <Box
+                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                      >
+                        <Avatar
+                          sx={{
+                            bgcolor: "primary.main",
+                            width: 32,
+                            height: 32,
+                          }}
+                        >
+                          <CategoryIcon fontSize="small" />
+                        </Avatar>
+                        <Typography fontWeight={600}>{cat.name}</Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        noWrap
+                        sx={{ maxWidth: 300 }}
+                      >
+                        {cat.description || "N/A"}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        icon={<EventIcon />}
+                        label={cat.eventCount || 0}
+                        size="small"
+                        variant="outlined"
+                      />
+                    </TableCell>
+                    <TableCell align="right">
+                      <Tooltip title="Sửa">
+                        <IconButton
+                          size="small"
+                          onClick={() => handleOpenDialog(cat)}
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Xóa">
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => {
+                            setSelectedCategory(cat);
+                            setDeleteDialogOpen(true);
+                          }}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Paper>
+
+      <Dialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          {editMode ? "Chỉnh sửa Category" : "Thêm Category mới"}
+        </DialogTitle>
+        <DialogContent>
+          <TextField
+            fullWidth
+            label="Tên Category"
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            sx={{ mt: 2 }}
+            required
+          />
+          <TextField
+            fullWidth
+            label="Mô tả"
+            value={formData.description}
+            onChange={(e) =>
+              setFormData({ ...formData, description: e.target.value })
+            }
+            sx={{ mt: 2 }}
+            multiline
+            rows={3}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDialogOpen(false)}>Hủy</Button>
+          <Button
+            variant="contained"
+            onClick={handleSave}
+            disabled={!formData.name.trim()}
+          >
+            {editMode ? "Cập nhật" : "Tạo mới"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+      >
+        <DialogTitle>Xác nhận xóa</DialogTitle>
+        <DialogContent>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            Chỉ có thể xóa category không có events!
+          </Alert>
+          <Typography>
+            Xóa category <strong>{selectedCategory?.name}</strong>?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>Hủy</Button>
+          <Button variant="contained" color="error" onClick={handleDelete}>
+            Xóa
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          variant="filled"
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </Box>
+  );
+};
+
+export default CategoryManagementPage;

@@ -1,11 +1,11 @@
-import dayjs from 'dayjs';
-import { DATE_FORMAT } from './constants';
+import dayjs from "dayjs";
+import { DATE_FORMAT } from "./constants";
 
 /**
  * Format date for display
  */
 export const formatDate = (date, format = DATE_FORMAT.DISPLAY) => {
-  if (!date) return '';
+  if (!date) return "";
   return dayjs(date).format(format);
 };
 
@@ -20,10 +20,10 @@ export const formatDateTime = (date) => {
  * Format currency (VND)
  */
 export const formatCurrency = (amount) => {
-  if (amount === null || amount === undefined) return '';
-  return new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND',
+  if (amount === null || amount === undefined) return "";
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
   }).format(amount);
 };
 
@@ -31,8 +31,8 @@ export const formatCurrency = (amount) => {
  * Format number with thousand separator
  */
 export const formatNumber = (num) => {
-  if (num === null || num === undefined) return '';
-  return new Intl.NumberFormat('vi-VN').format(num);
+  if (num === null || num === undefined) return "";
+  return new Intl.NumberFormat("vi-VN").format(num);
 };
 
 /**
@@ -40,18 +40,18 @@ export const formatNumber = (num) => {
  */
 export const truncateText = (text, maxLength = 100) => {
   if (!text || text.length <= maxLength) return text;
-  return text.substring(0, maxLength) + '...';
+  return text.substring(0, maxLength) + "...";
 };
 
 /**
  * Get initials from name
  */
 export const getInitials = (name) => {
-  if (!name) return '';
+  if (!name) return "";
   return name
-    .split(' ')
+    .split(" ")
     .map((word) => word[0])
-    .join('')
+    .join("")
     .toUpperCase()
     .substring(0, 2);
 };
@@ -89,12 +89,12 @@ export const getErrorMessage = (error) => {
     return error.response.data.message;
   }
   if (error.response?.data?.errors) {
-    return Object.values(error.response.data.errors).flat().join(', ');
+    return Object.values(error.response.data.errors).flat().join(", ");
   }
   if (error.message) {
     return error.message;
   }
-  return 'Đã có lỗi xảy ra. Vui lòng thử lại.';
+  return "Đã có lỗi xảy ra. Vui lòng thử lại.";
 };
 
 /**
@@ -103,7 +103,7 @@ export const getErrorMessage = (error) => {
 export const buildQueryString = (params) => {
   const searchParams = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
-    if (value !== null && value !== undefined && value !== '') {
+    if (value !== null && value !== undefined && value !== "") {
       searchParams.append(key, value);
     }
   });
