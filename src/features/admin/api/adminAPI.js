@@ -1,14 +1,14 @@
-import axiosInstance from '@/api/axiosInstance';
+import axiosInstance from "@/api/axiosInstance";
 
 // ==================== DASHBOARD ====================
 export const getDashboardStatistics = async () => {
-  const response = await axiosInstance.get('/admin/dashboard/statistics');
+  const response = await axiosInstance.get("/admin/dashboard/statistics");
   return response.data;
 };
 
 // ==================== USERS ====================
 export const getUsers = async (params = {}) => {
-  const response = await axiosInstance.get('/admin/users', { params });
+  const response = await axiosInstance.get("/admin/users", { params });
   return response.data;
 };
 
@@ -23,14 +23,20 @@ export const updateUser = async (id, data) => {
 };
 
 export const toggleUserActive = async (id) => {
-  const response = await axiosInstance.patch(`/admin/users/${id}/toggle-active`);
+  const response = await axiosInstance.patch(
+    `/admin/users/${id}/toggle-active`
+  );
   return response.data;
 };
 
 export const changeUserRole = async (id, role) => {
-  const response = await axiosInstance.patch(`/admin/users/${id}/change-role`, null, {
-    params: { role }
-  });
+  const response = await axiosInstance.patch(
+    `/admin/users/${id}/change-role`,
+    null,
+    {
+      params: { role },
+    }
+  );
   return response.data;
 };
 
@@ -50,18 +56,18 @@ export const deleteUserPermanently = async (id) => {
 };
 
 export const getUserStatistics = async () => {
-  const response = await axiosInstance.get('/admin/users/statistics');
+  const response = await axiosInstance.get("/admin/users/statistics");
   return response.data;
 };
 
 // ==================== EVENTS ====================
 export const getEvents = async (params = {}) => {
-  const response = await axiosInstance.get('/admin/events', { params });
+  const response = await axiosInstance.get("/admin/events", { params });
   return response.data;
 };
 
 export const getPendingEvents = async (params = {}) => {
-  const response = await axiosInstance.get('/admin/events/pending', { params });
+  const response = await axiosInstance.get("/admin/events/pending", { params });
   return response.data;
 };
 
@@ -71,19 +77,28 @@ export const getEventDetail = async (id) => {
 };
 
 export const approveEvent = async (id, data) => {
-  const response = await axiosInstance.post(`/admin/events/${id}/approval`, data);
+  const response = await axiosInstance.post(
+    `/admin/events/${id}/approval`,
+    data
+  );
   return response.data;
 };
 
 export const toggleEventFeatured = async (id) => {
-  const response = await axiosInstance.patch(`/admin/events/${id}/toggle-featured`);
+  const response = await axiosInstance.patch(
+    `/admin/events/${id}/toggle-featured`
+  );
   return response.data;
 };
 
 export const cancelEvent = async (id, reason) => {
-  const response = await axiosInstance.post(`/admin/events/${id}/cancel`, null, {
-    params: { reason }
-  });
+  const response = await axiosInstance.post(
+    `/admin/events/${id}/cancel`,
+    null,
+    {
+      params: { reason },
+    }
+  );
   return response.data;
 };
 
@@ -93,18 +108,18 @@ export const deleteEvent = async (id) => {
 };
 
 export const getEventStatistics = async () => {
-  const response = await axiosInstance.get('/admin/events/statistics');
+  const response = await axiosInstance.get("/admin/events/statistics");
   return response.data;
 };
 
 // ==================== CATEGORIES ====================
 export const getCategories = async () => {
-  const response = await axiosInstance.get('/categories');
+  const response = await axiosInstance.get("/categories");
   return response.data;
 };
 
 export const createCategory = async (data) => {
-  const response = await axiosInstance.post('/categories', data);
+  const response = await axiosInstance.post("/categories", data);
   return response.data;
 };
 
@@ -112,7 +127,7 @@ export const updateCategory = async (id, data) => {
   const response = await axiosInstance.put(`/categories/${id}`, data);
   return response.data;
 };
- 
+
 export const deleteCategory = async (id) => {
   const response = await axiosInstance.delete(`/categories/${id}`);
   return response.data;
@@ -120,11 +135,16 @@ export const deleteCategory = async (id) => {
 
 // ==================== ORDERS ====================
 export const getOrders = async (params = {}) => {
-  const response = await axiosInstance.get('/orders', { params });
+  const response = await axiosInstance.get("/admin/orders", { params });
   return response.data;
 };
 
 export const getOrderDetail = async (id) => {
-  const response = await axiosInstance.get(`/orders/${id}`);
+  const response = await axiosInstance.get(`/admin/orders/${id}`);
+  return response.data;
+};
+
+export const getOrderStatistics = async () => {
+  const response = await axiosInstance.get("/admin/orders/statistics");
   return response.data;
 };
