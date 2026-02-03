@@ -12,6 +12,7 @@ import {
 } from "@/features/orders";
 import { MyTicketsPage } from "@/features/tickets";
 import { CheckInPage } from "@/features/checkin";
+import { WaitingRoomPage } from "@/features/waitingroom";
 
 // Admin Pages
 import AdminLayout from "@/components/admin/AdminLayout";
@@ -67,6 +68,14 @@ const router = createBrowserRouter([
       { index: true, element: <HomePage /> },
       { path: "events", element: <EventListPage /> },
       { path: "events/:id", element: <EventDetailPage /> },
+      {
+        path: "waiting-room/:eventId",
+        element: (
+          <PrivateRoute>
+            <WaitingRoomPage />
+          </PrivateRoute>
+        ),
+      },
       {
         path: "my-tickets",
         element: (

@@ -43,6 +43,7 @@ import {
 import eventAPI from '../eventAPI';
 import { EventCard, EventCardSkeleton } from '../components';
 import ReviewSection from '../components/ReviewSection';
+import { WaitingRoomBanner } from '@/features/waitingroom';
 import { formatDate, formatCurrency } from '@/utils/helpers';
 import { useAuth } from '@/hooks';
 
@@ -382,8 +383,12 @@ const EventDetailPage = () => {
               /* Event Ended - Show Reviews */
               <ReviewSection eventId={event.id} isEventEnded={isEventEnded} />
             ) : (
-              /* Event Active - Show Ticket Selection */
-              <Paper sx={{ borderRadius: 3, overflow: 'hidden', mb: 3 }}>
+              <>
+                {/* Waiting Room Banner */}
+                <WaitingRoomBanner eventId={event.id} eventSlug={event.slug} />
+
+                {/* Ticket Selection */}
+                <Paper sx={{ borderRadius: 3, overflow: 'hidden', mb: 3 }}>
                 <Box sx={{ p: 3 }}>
                   <Typography variant="h6" fontWeight={600} gutterBottom>
                     <ConfirmationNumber sx={{ mr: 1, verticalAlign: 'middle' }} />
@@ -481,6 +486,7 @@ const EventDetailPage = () => {
                   )}
                 </Box>
               </Paper>
+              </>
             )}
 
             {/* Event Info Accordion */}
