@@ -11,6 +11,7 @@ import {
   PaymentFailedPage,
 } from "@/features/orders";
 import { MyTicketsPage } from "@/features/tickets";
+import { ProfilePage } from "@/features/profile";
 import { CheckInPage } from "@/features/checkin";
 import { WaitingRoomPage } from "@/features/waitingroom";
 
@@ -88,7 +89,7 @@ const router = createBrowserRouter([
         path: "profile",
         element: (
           <PrivateRoute>
-            <HomePage />
+            <ProfilePage />
           </PrivateRoute>
         ),
       },

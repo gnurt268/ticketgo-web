@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useLocation, useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { useSelector, useDispatch } from 'react-redux';
+import { selectCart, clearCart } from '@/features/cart';
 import {
   Box,
   Container,
@@ -65,16 +67,9 @@ const checkoutSchema = yup.object({
 const STEPS = ['Thông tin đặt vé', 'Thanh toán'];
 
 const CheckoutPage = () => {
-  const location = useLocation();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const { user } = useAuth();
-
-  const [activeStep, setActiveStep] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [countdown, setCountdown] = useState(15 * 60); // 15 minutes
-
-  // Get data from navigation state
   const {
     eventId,
     eventTitle,
@@ -83,7 +78,12 @@ const CheckoutPage = () => {
     eventPosterUrl,
     selectedTickets,
     ticketZones,
-  } = location.state || {};
+  } = useSelector(selectCart);
+
+  const [activeStep, setActiveStep] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [countdown, setCountdown] = useState(15 * 60); // 15 minutes
 
   // Form setup
   const {
@@ -176,6 +176,7 @@ const CheckoutPage = () => {
       const order = response.data;
       console.log('Order response:', order); 
     console.log('Payment URL:', order.paymentUrl);
+      dispatch(clearCart());
       // If payment URL exists, redirect to VNPay
       if (order.paymentUrl) {
         window.location.href = order.paymentUrl;

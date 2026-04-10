@@ -1,5 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchCities, selectCities } from '../eventsSlice';
 import {
   Box,
   Container,
@@ -49,13 +51,14 @@ const CATEGORIES = [
 
 const EventListPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  
+  const dispatch = useDispatch();
+  const cities = useSelector(selectCities);
+
   // State
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
-  const [cities, setCities] = useState([]);
   const [showFilters, setShowFilters] = useState(true);
 
   // Get params from URL
@@ -69,18 +72,10 @@ const EventListPage = () => {
   // Local filter state
   const [searchInput, setSearchInput] = useState(keyword);
 
-  // Fetch cities on mount
+  // Fetch cities (cached in Redux — only fetches once across the app)
   useEffect(() => {
-    const fetchCities = async () => {
-      try {
-        const response = await eventAPI.getAvailableCities();
-        setCities(response.data || []);
-      } catch (error) {
-        console.error('Error fetching cities:', error);
-      }
-    };
-    fetchCities();
-  }, []);
+    dispatch(fetchCities());
+  }, [dispatch]);
 
   // Fetch events when params change
   useEffect(() => {

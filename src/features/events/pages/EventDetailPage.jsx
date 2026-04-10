@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { setCart, updateTicketQuantity, clearCart, selectSelectedTickets } from '@/features/cart';
 import {
   Box,
   Container,
@@ -50,7 +52,9 @@ import { useAuth } from '@/hooks';
 const EventDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const { isAuthenticated } = useAuth();
+  const selectedTickets = useSelector(selectSelectedTickets);
 
   // State
   const [event, setEvent] = useState(null);
@@ -58,7 +62,6 @@ const EventDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isFavorite, setIsFavorite] = useState(false);
-  const [selectedTickets, setSelectedTickets] = useState({});
 
   // Check if event has ended
   const isEventEnded = event && new Date(event.endDate) < new Date();
@@ -91,6 +94,7 @@ const EventDetailPage = () => {
     };
 
     if (id) {
+      dispatch(clearCart());
       fetchEvent();
       window.scrollTo(0, 0);
     }
@@ -98,17 +102,11 @@ const EventDetailPage = () => {
 
   // Handle ticket quantity change
   const handleTicketChange = (zoneId, delta) => {
-    setSelectedTickets((prev) => {
-      const current = prev[zoneId] || 0;
-      const newValue = Math.max(0, Math.min(current + delta, 10)); // Max 10 per zone
-      
-      if (newValue === 0) {
-        const { [zoneId]: _, ...rest } = prev;
-        return rest;
-      }
-      
-      return { ...prev, [zoneId]: newValue };
-    });
+    const current = selectedTickets[zoneId] || 0;
+    const zone = event?.ticketZones?.find((z) => z.id === zoneId);
+    const maxQty = Math.min(10, zone?.availableCapacity ?? 10);
+    const newValue = Math.max(0, Math.min(current + delta, maxQty));
+    dispatch(updateTicketQuantity({ zoneId, quantity: newValue }));
   };
 
   // Calculate total
@@ -140,19 +138,17 @@ const EventDetailPage = () => {
     const total = calculateTotal();
     if (total.quantity === 0) return;
 
-    // Navigate to checkout with selected tickets
-    navigate('/checkout', {
-      state: {
-        eventId: event.id,
-        eventTitle: event.title,
-        eventDate: event.startDate,
-        eventVenue: event.venue,
-        eventAddress: event.address,
-        eventPosterUrl: event.posterUrl,
-        selectedTickets,
-        ticketZones: event.ticketZones,
-      },
-    });
+    dispatch(setCart({
+      eventId: event.id,
+      eventTitle: event.title,
+      eventDate: event.startDate,
+      eventVenue: event.venue,
+      eventAddress: event.address,
+      eventPosterUrl: event.posterUrl,
+      selectedTickets,
+      ticketZones: event.ticketZones,
+    }));
+    navigate('/checkout');
   };
 
   // Share event
