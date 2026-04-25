@@ -15,12 +15,13 @@ import {
   Zoom,
   keyframes,
 } from '@mui/material';
-import { Close, Visibility, VisibilityOff, CheckCircle, Error } from '@mui/icons-material';
+import { Close, Visibility, VisibilityOff, CheckCircle, Error, MarkEmailRead, Replay } from '@mui/icons-material';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { useAuth } from '@/hooks';
 import { FoxIcon } from '@/assets/brand';
+import { authAPI } from '@/features/auth';
 
 // Validation schemas
 const loginSchema = yup.object({
@@ -150,7 +151,11 @@ const AuthModal = ({ open, onClose, defaultTab = 0 }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { login, register: registerUser, isLoading, error, resetError } = useAuth();
-  
+
+  // Verification prompt after register
+  const [registeredEmail, setRegisteredEmail] = useState('');
+  const [resendLoading, setResendLoading] = useState(false);
+
   // Popup state
   const [popup, setPopup] = useState({
     open: false,
@@ -198,6 +203,22 @@ const AuthModal = ({ open, onClose, defaultTab = 0 }) => {
     registerForm.reset();
     setShowPassword(false);
     setShowConfirmPassword(false);
+    setRegisteredEmail('');
+  };
+
+  const handleResendVerification = async () => {
+    if (!registeredEmail) return;
+    setResendLoading(true);
+    try {
+      await authAPI.resendVerification(registeredEmail);
+      showSuccessPopup('Đã gửi lại email xác thực', closePopup);
+    } catch (err) {
+      showErrorPopup(
+        err.response?.data?.message || 'Gửi lại email thất bại'
+      );
+    } finally {
+      setResendLoading(false);
+    }
   };
 
   const closePopup = () => {
@@ -231,23 +252,20 @@ const AuthModal = ({ open, onClose, defaultTab = 0 }) => {
           handleClose();
         });
       }
-    } catch (err) {
+    } catch {
       showErrorPopup('Đã có lỗi xảy ra');
     }
   };
 
   const onRegister = async (data) => {
     try {
-      const { confirmPassword, ...registerData } = data;
+      const { confirmPassword: _confirmPassword, ...registerData } = data;
       const result = await registerUser(registerData);
       if (result.meta.requestStatus === 'fulfilled') {
-        showSuccessPopup('Đăng ký thành công', () => {
-          closePopup();
-          setTab(0);
-          registerForm.reset();
-        });
+        setRegisteredEmail(registerData.email);
+        registerForm.reset();
       }
-    } catch (err) {
+    } catch {
       showErrorPopup('Đã có lỗi xảy ra');
     }
   };
@@ -315,37 +333,86 @@ const AuthModal = ({ open, onClose, defaultTab = 0 }) => {
               </Typography>
             </Box>
             <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)', mt: 0.5 }}>
-              {tab === 0 ? 'Đăng nhập để tiếp tục' : 'Tạo tài khoản mới'}
+              {registeredEmail
+                ? 'Xác thực email của bạn'
+                : tab === 0
+                ? 'Đăng nhập để tiếp tục'
+                : 'Tạo tài khoản mới'}
             </Typography>
           </Box>
         </Box>
 
-        {/* Tabs */}
-        <Box sx={{ px: 3 }}>
-          <Tabs 
-            value={tab} 
-            onChange={handleTabChange} 
-            variant="fullWidth"
-            sx={{
-              '& .MuiTab-root': {
-                py: 2,
-              }
-            }}
-          >
-            <Tab label="Đăng nhập" />
-            <Tab label="Đăng ký" />
-          </Tabs>
-        </Box>
+        {/* Tabs (hidden when showing verification prompt) */}
+        {!registeredEmail && (
+          <Box sx={{ px: 3 }}>
+            <Tabs
+              value={tab}
+              onChange={handleTabChange}
+              variant="fullWidth"
+              sx={{
+                '& .MuiTab-root': {
+                  py: 2,
+                }
+              }}
+            >
+              <Tab label="Đăng nhập" />
+              <Tab label="Đăng ký" />
+            </Tabs>
+          </Box>
+        )}
 
         <DialogContent sx={{ pt: 3 }}>
-          {error && (
+          {error && !registeredEmail && (
             <Alert severity="error" sx={{ mb: 3 }}>
               {error}
             </Alert>
           )}
 
+          {/* Email Verification Prompt */}
+          {registeredEmail && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 2, py: 1 }}>
+              <MarkEmailRead sx={{ fontSize: 64, color: 'primary.main' }} />
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                Kiểm tra email của bạn
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Chúng tôi đã gửi liên kết xác thực đến{' '}
+                <Box component="span" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                  {registeredEmail}
+                </Box>
+                . Vui lòng nhấp vào liên kết trong email để kích hoạt tài khoản.
+              </Typography>
+              <Button
+                fullWidth
+                variant="outlined"
+                startIcon={!resendLoading && <Replay />}
+                onClick={handleResendVerification}
+                disabled={resendLoading}
+                sx={{ mt: 1 }}
+              >
+                {resendLoading ? (
+                  <CircularProgress size={22} color="inherit" />
+                ) : (
+                  'Gửi lại email xác thực'
+                )}
+              </Button>
+              <Button
+                fullWidth
+                variant="contained"
+                size="large"
+                onClick={() => {
+                  setRegisteredEmail('');
+                  setTab(0);
+                }}
+                sx={{ py: 1.5 }}
+              >
+                Tôi đã xác thực, đăng nhập
+              </Button>
+            </Box>
+          )}
+
           {/* Login Form */}
-          {tab === 0 && (
+          {!registeredEmail && tab === 0 && (
             <Box
               component="form"
               onSubmit={loginForm.handleSubmit(onLogin)}
@@ -430,7 +497,7 @@ const AuthModal = ({ open, onClose, defaultTab = 0 }) => {
           )}
 
           {/* Register Form */}
-          {tab === 1 && (
+          {!registeredEmail && tab === 1 && (
             <Box
               component="form"
               onSubmit={registerForm.handleSubmit(onRegister)}

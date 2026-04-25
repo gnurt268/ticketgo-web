@@ -41,13 +41,15 @@ export const ROLES = {
   ADMIN: 'ADMIN',
 };
 
-// Order status
+// Payment status (OrderDTO.paymentStatus)
 export const ORDER_STATUS = {
   PENDING: 'PENDING',
-  PAID: 'PAID',
+  PROCESSING: 'PROCESSING',
+  COMPLETED: 'COMPLETED',
   FAILED: 'FAILED',
   EXPIRED: 'EXPIRED',
   CANCELLED: 'CANCELLED',
+  REFUNDED: 'REFUNDED',
 };
 
 // Ticket status
@@ -61,11 +63,32 @@ export const TICKET_STATUS = {
 // Event status
 export const EVENT_STATUS = {
   DRAFT: 'DRAFT',
-  PENDING_APPROVAL: 'PENDING_APPROVAL',
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  PUBLISHED: 'PUBLISHED',
+  CANCELLED: 'CANCELLED',
+  COMPLETED: 'COMPLETED',
+};
+
+// Organizer request status
+export const ORGANIZER_REQUEST_STATUS = {
+  PENDING: 'PENDING',
   APPROVED: 'APPROVED',
   REJECTED: 'REJECTED',
   CANCELLED: 'CANCELLED',
-  COMPLETED: 'COMPLETED',
+};
+
+// Organization type
+export const ORGANIZATION_TYPE = {
+  INDIVIDUAL: 'INDIVIDUAL',
+  COMPANY: 'COMPANY',
+  ORGANIZATION: 'ORGANIZATION',
+};
+
+export const ORGANIZATION_TYPE_LABELS = {
+  INDIVIDUAL: 'Cá nhân',
+  COMPANY: 'Doanh nghiệp',
+  ORGANIZATION: 'Tổ chức',
 };
 
 // Pagination

@@ -95,6 +95,13 @@ const MyTicketsPage = () => {
     setSelectedTicket(null);
   };
 
+  const handleTransferred = (updatedTicket) => {
+    if (updatedTicket) {
+      setSelectedTicket(updatedTicket);
+    }
+    fetchTickets();
+  };
+
   // Filter tickets by search query
   const filteredTickets = tickets.filter((ticket) => {
     if (!searchQuery) return true;
@@ -239,6 +246,7 @@ const MyTicketsPage = () => {
           onClose={handleCloseModal}
           ticketId={selectedTicket?.id}
           initialData={selectedTicket}
+          onTransferred={handleTransferred}
         />
       </Container>
     </Box>

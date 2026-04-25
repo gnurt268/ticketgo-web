@@ -14,6 +14,10 @@ import {
   Skeleton,
   Alert,
   alpha,
+  TextField,
+  InputAdornment,
+  CircularProgress,
+  Stack,
 } from '@mui/material';
 import {
   Close,
@@ -29,8 +33,14 @@ import {
   QrCode2,
   CheckCircle,
   SwapHoriz,
+  Badge as BadgeIcon,
+  Info,
 } from '@mui/icons-material';
-import { formatDate, formatCurrency } from '@/utils/helpers';
+import { useForm, Controller } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as yup from 'yup';
+import { toast } from 'react-toastify';
+import { formatDate, formatCurrency, getErrorMessage } from '@/utils/helpers';
 import ticketAPI from '../ticketAPI';
 
 const statusConfig = {
@@ -42,11 +52,49 @@ const statusConfig = {
   TRANSFERRED: { label: 'Đã chuyển nhượng', color: 'info' },
 };
 
-const TicketDetailModal = ({ open, onClose, ticketId, initialData }) => {
+const transferSchema = yup.object({
+  recipientName: yup
+    .string()
+    .required('Vui lòng nhập họ tên người nhận')
+    .max(255, 'Họ tên tối đa 255 ký tự'),
+  recipientEmail: yup
+    .string()
+    .required('Vui lòng nhập email người nhận')
+    .email('Email không hợp lệ'),
+  recipientPhone: yup
+    .string()
+    .required('Vui lòng nhập số điện thoại người nhận')
+    .max(20, 'Số điện thoại tối đa 20 ký tự')
+    .matches(/^(\+?84|0)\d{9,10}$/, 'Số điện thoại không hợp lệ'),
+  recipientIdNumber: yup
+    .string()
+    .nullable()
+    .transform((value) => (value === '' ? null : value))
+    .max(50, 'CCCD/CMND tối đa 50 ký tự'),
+});
+
+const TicketDetailModal = ({ open, onClose, ticketId, initialData, onTransferred }) => {
   const [ticket, setTicket] = useState(initialData || null);
   const [loading, setLoading] = useState(!initialData);
   const [error, setError] = useState(null);
   const [qrLoading, setQrLoading] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [transferLoading, setTransferLoading] = useState(false);
+
+  const {
+    control: transferControl,
+    handleSubmit: handleTransferSubmit,
+    reset: resetTransferForm,
+    formState: { errors: transferErrors },
+  } = useForm({
+    resolver: yupResolver(transferSchema),
+    defaultValues: {
+      recipientName: '',
+      recipientEmail: '',
+      recipientPhone: '',
+      recipientIdNumber: '',
+    },
+  });
 
   useEffect(() => {
     if (open && ticketId && !initialData) {
@@ -91,6 +139,44 @@ const TicketDetailModal = ({ open, onClose, ticketId, initialData }) => {
       console.error('Error downloading QR:', err);
     } finally {
       setQrLoading(false);
+    }
+  };
+
+  const handleOpenTransfer = () => {
+    resetTransferForm({
+      recipientName: '',
+      recipientEmail: '',
+      recipientPhone: '',
+      recipientIdNumber: '',
+    });
+    setTransferOpen(true);
+  };
+
+  const handleCloseTransfer = () => {
+    if (transferLoading) return;
+    setTransferOpen(false);
+  };
+
+  const onTransferSubmit = async (data) => {
+    if (!ticket?.id) return;
+    try {
+      setTransferLoading(true);
+      const payload = {
+        recipientName: data.recipientName.trim(),
+        recipientEmail: data.recipientEmail.trim(),
+        recipientPhone: data.recipientPhone.trim(),
+        recipientIdNumber: data.recipientIdNumber?.trim() || null,
+      };
+      const response = await ticketAPI.transferTicket(ticket.id, payload);
+      setTicket(response.data);
+      setTransferOpen(false);
+      resetTransferForm();
+      toast.success('Chuyển nhượng vé thành công!');
+      onTransferred?.(response.data);
+    } catch (err) {
+      toast.error(getErrorMessage(err) || 'Chuyển nhượng vé thất bại');
+    } finally {
+      setTransferLoading(false);
     }
   };
 
@@ -362,21 +448,199 @@ const TicketDetailModal = ({ open, onClose, ticketId, initialData }) => {
         ) : null}
       </DialogContent>
 
-      <DialogActions sx={{ px: 3, py: 2 }}>
+      <DialogActions sx={{ px: 3, py: 2, flexWrap: 'wrap', gap: 1 }}>
         <Button onClick={handleShare} startIcon={<Share />} variant="text">
           Chia sẻ
         </Button>
+        <Box sx={{ flex: 1 }} />
         {isValidTicket && (
-          <Button
-            onClick={handleDownloadQR}
-            startIcon={<Download />}
-            variant="contained"
-            disabled={qrLoading}
-          >
-            {qrLoading ? 'Đang tải...' : 'Tải mã QR'}
-          </Button>
+          <>
+            <Button
+              onClick={handleOpenTransfer}
+              startIcon={<SwapHoriz />}
+              variant="outlined"
+              color="secondary"
+            >
+              Chuyển nhượng
+            </Button>
+            <Button
+              onClick={handleDownloadQR}
+              startIcon={<Download />}
+              variant="contained"
+              disabled={qrLoading}
+            >
+              {qrLoading ? 'Đang tải...' : 'Tải mã QR'}
+            </Button>
+          </>
         )}
       </DialogActions>
+
+      {/* Transfer Confirmation Dialog */}
+      <Dialog
+        open={transferOpen}
+        onClose={handleCloseTransfer}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3 } }}
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, pb: 1 }}>
+          <SwapHoriz color="secondary" />
+          <Typography variant="h6" fontWeight={600}>
+            Chuyển nhượng vé
+          </Typography>
+        </DialogTitle>
+        <Box
+          component="form"
+          onSubmit={handleTransferSubmit(onTransferSubmit)}
+          noValidate
+        >
+          <DialogContent dividers>
+            <Alert severity="warning" icon={<Info />} sx={{ mb: 2, borderRadius: 2 }}>
+              <Typography variant="body2">
+                Sau khi chuyển nhượng, vé sẽ thuộc về người nhận và bạn không
+                thể sử dụng vé này nữa. Hành động này không thể hoàn tác.
+              </Typography>
+            </Alert>
+
+            {ticket && (
+              <Box
+                sx={{
+                  p: 2,
+                  mb: 2,
+                  borderRadius: 2,
+                  bgcolor: alpha('#5E35B1', 0.04),
+                  border: '1px dashed',
+                  borderColor: 'primary.light',
+                }}
+              >
+                <Typography variant="caption" color="text.secondary">
+                  Vé chuyển nhượng
+                </Typography>
+                <Typography variant="subtitle2" fontWeight={600} sx={{ mt: 0.5 }}>
+                  {ticket.eventTitle}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Mã vé: <strong>{ticket.ticketCode}</strong> • {ticket.zoneName}
+                </Typography>
+              </Box>
+            )}
+
+            <Stack spacing={2}>
+              <Controller
+                name="recipientName"
+                control={transferControl}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Họ tên người nhận"
+                    fullWidth
+                    autoFocus
+                    disabled={transferLoading}
+                    error={!!transferErrors.recipientName}
+                    helperText={transferErrors.recipientName?.message}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Person fontSize="small" color="action" />
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                )}
+              />
+
+              <Controller
+                name="recipientEmail"
+                control={transferControl}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Email người nhận"
+                    type="email"
+                    fullWidth
+                    disabled={transferLoading}
+                    error={!!transferErrors.recipientEmail}
+                    helperText={transferErrors.recipientEmail?.message}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Email fontSize="small" color="action" />
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                )}
+              />
+
+              <Controller
+                name="recipientPhone"
+                control={transferControl}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Số điện thoại người nhận"
+                    fullWidth
+                    disabled={transferLoading}
+                    error={!!transferErrors.recipientPhone}
+                    helperText={transferErrors.recipientPhone?.message}
+                    placeholder="0xxxxxxxxx"
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Phone fontSize="small" color="action" />
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                )}
+              />
+
+              <Controller
+                name="recipientIdNumber"
+                control={transferControl}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="CCCD / CMND (không bắt buộc)"
+                    fullWidth
+                    disabled={transferLoading}
+                    error={!!transferErrors.recipientIdNumber}
+                    helperText={transferErrors.recipientIdNumber?.message}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <BadgeIcon fontSize="small" color="action" />
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                )}
+              />
+            </Stack>
+          </DialogContent>
+
+          <DialogActions sx={{ px: 3, py: 2 }}>
+            <Button onClick={handleCloseTransfer} disabled={transferLoading}>
+              Hủy
+            </Button>
+            <Button
+              type="submit"
+              variant="contained"
+              color="secondary"
+              disabled={transferLoading}
+              startIcon={
+                transferLoading ? (
+                  <CircularProgress size={18} color="inherit" />
+                ) : (
+                  <SwapHoriz />
+                )
+              }
+            >
+              {transferLoading ? 'Đang xử lý...' : 'Xác nhận chuyển nhượng'}
+            </Button>
+          </DialogActions>
+        </Box>
+      </Dialog>
     </Dialog>
   );
 };

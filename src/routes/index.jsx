@@ -14,6 +14,7 @@ import { MyTicketsPage } from "@/features/tickets";
 import { ProfilePage } from "@/features/profile";
 import { CheckInPage } from "@/features/checkin";
 import { WaitingRoomPage } from "@/features/waitingroom";
+import { VerifyEmailPage } from "@/features/auth";
 
 // Admin Pages
 import AdminLayout from "@/components/admin/AdminLayout";
@@ -26,6 +27,15 @@ import {
   OrganizerRequestManagementPage,
 } from "@/features/admin";
 
+// Organizer Pages
+import {
+  OrganizerLayout,
+  OrganizerDashboardPage,
+  OrganizerEventListPage,
+  OrganizerEventFormPage,
+  OrganizerEventDetailPage,
+} from "@/features/organizer";
+
 const router = createBrowserRouter([
   // Check-in route (full screen)
   {
@@ -35,6 +45,12 @@ const router = createBrowserRouter([
         <CheckInPage />
       </PrivateRoute>
     ),
+  },
+
+  // Email verification route (full screen, public)
+  {
+    path: "/verify-email",
+    element: <VerifyEmailPage />,
   },
 
   // Admin routes with sidebar layout
@@ -117,14 +133,23 @@ const router = createBrowserRouter([
           </PrivateRoute>
         ),
       },
-      {
-        path: "organizer/*",
-        element: (
-          <PrivateRoute roles={[ROLES.ORGANIZER, ROLES.ADMIN]}>
-            <HomePage />
-          </PrivateRoute>
-        ),
-      },
+    ],
+  },
+
+  // Organizer routes with sidebar layout
+  {
+    path: "/organizer",
+    element: (
+      <PrivateRoute roles={[ROLES.ORGANIZER, ROLES.ADMIN]}>
+        <OrganizerLayout />
+      </PrivateRoute>
+    ),
+    children: [
+      { index: true, element: <OrganizerDashboardPage /> },
+      { path: "events", element: <OrganizerEventListPage /> },
+      { path: "events/create", element: <OrganizerEventFormPage /> },
+      { path: "events/:id", element: <OrganizerEventDetailPage /> },
+      { path: "events/:id/edit", element: <OrganizerEventFormPage /> },
     ],
   },
 

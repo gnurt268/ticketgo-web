@@ -26,19 +26,15 @@ const authAPI = {
   },
 
   verifyEmail: (token) => {
-    return axiosInstance.post('/auth/verify-email', { token });
+    return axiosInstance.get('/auth/verify-email', { params: { token } });
+  },
+
+  resendVerification: (email) => {
+    return axiosInstance.post('/auth/resend-verification', { email });
   },
 
   getCurrentUser: () => {
     return axiosInstance.get('/auth/me');
-  },
-
-  updateProfile: (data) => {
-    return axiosInstance.put('/auth/profile', data);
-  },
-
-  changePassword: (data) => {
-    return axiosInstance.put('/auth/change-password', data);
   },
 };
 
