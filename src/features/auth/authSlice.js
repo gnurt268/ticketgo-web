@@ -67,6 +67,8 @@ const initialState = {
   isAuthenticated: !!localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN),
   isLoading: false,
   error: null,
+  isAuthModalOpen: false,
+  authModalTab: 0,
 };
 
 // Slice
@@ -80,6 +82,13 @@ const authSlice = createSlice({
     setUser: (state, action) => {
       state.user = action.payload;
       state.isAuthenticated = !!action.payload;
+    },
+    openAuthModal: (state, action) => {
+      state.isAuthModalOpen = true;
+      state.authModalTab = action.payload?.tab ?? 0;
+    },
+    closeAuthModal: (state) => {
+      state.isAuthModalOpen = false;
     },
   },
   extraReducers: (builder) => {
@@ -132,7 +141,7 @@ const authSlice = createSlice({
   },
 });
 
-export const { clearError, setUser } = authSlice.actions;
+export const { clearError, setUser, openAuthModal, closeAuthModal } = authSlice.actions;
 
 // Selectors
 export const selectAuth = (state) => state.auth;
@@ -140,5 +149,7 @@ export const selectUser = (state) => state.auth.user;
 export const selectIsAuthenticated = (state) => state.auth.isAuthenticated;
 export const selectIsLoading = (state) => state.auth.isLoading;
 export const selectError = (state) => state.auth.error;
+export const selectIsAuthModalOpen = (state) => state.auth.isAuthModalOpen;
+export const selectAuthModalTab = (state) => state.auth.authModalTab;
 
 export default authSlice.reducer;

@@ -33,7 +33,15 @@ import {
   KeyboardArrowDown,
   QrCodeScanner,
 } from '@mui/icons-material';
-import { logout, selectUser, selectIsAuthenticated } from '@/features/auth';
+import {
+  logout,
+  selectUser,
+  selectIsAuthenticated,
+  openAuthModal,
+  closeAuthModal,
+  selectIsAuthModalOpen,
+  selectAuthModalTab,
+} from '@/features/auth';
 import { ROUTES, ROLES } from '@/utils/constants';
 import { getInitials } from '@/utils/helpers';
 import { AuthModal } from '@/components/common';
@@ -61,9 +69,10 @@ const Header = () => {
   const dispatch = useDispatch();
   const user = useSelector(selectUser);
   const isAuthenticated = useSelector(selectIsAuthenticated);
+  const isAuthModalOpen = useSelector(selectIsAuthModalOpen);
+  const authModalTab = useSelector(selectAuthModalTab);
 
   const [anchorEl, setAnchorEl] = useState(null);
-  const [authModal, setAuthModal] = useState({ open: false, tab: 0 });
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -102,9 +111,9 @@ const Header = () => {
     handleMenuClose();
   };
 
-  const openLoginModal = () => setAuthModal({ open: true, tab: 0 });
-  const openRegisterModal = () => setAuthModal({ open: true, tab: 1 });
-  const closeAuthModal = () => setAuthModal({ open: false, tab: 0 });
+  const openLoginModal = () => dispatch(openAuthModal({ tab: 0 }));
+  const openRegisterModal = () => dispatch(openAuthModal({ tab: 1 }));
+  const handleCloseAuthModal = () => dispatch(closeAuthModal());
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -685,9 +694,9 @@ const Header = () => {
 
       {/* Auth Modal */}
       <AuthModal
-        open={authModal.open}
-        onClose={closeAuthModal}
-        defaultTab={authModal.tab}
+        open={isAuthModalOpen}
+        onClose={handleCloseAuthModal}
+        defaultTab={authModalTab}
       />
     </>
   );

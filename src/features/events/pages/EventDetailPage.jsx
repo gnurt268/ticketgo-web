@@ -48,6 +48,7 @@ import ReviewSection from '../components/ReviewSection';
 import { WaitingRoomBanner } from '@/features/waitingroom';
 import { formatDate, formatCurrency } from '@/utils/helpers';
 import { useAuth } from '@/hooks';
+import { openAuthModal } from '@/features/auth';
 
 const EventDetailPage = () => {
   const { id } = useParams();
@@ -130,8 +131,7 @@ const EventDetailPage = () => {
   // Handle checkout
   const handleCheckout = () => {
     if (!isAuthenticated) {
-      // TODO: Show auth modal
-      navigate('/login', { state: { from: `/events/${id}` } });
+      dispatch(openAuthModal({ tab: 0 }));
       return;
     }
 

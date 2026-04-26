@@ -48,11 +48,14 @@ axiosInstance.interceptors.response.use(
           return axiosInstance(originalRequest);
         }
       } catch (refreshError) {
-        // Refresh failed - Clear storage and redirect to login
+        // Refresh failed - Clear storage, reset auth state, prompt re-login
         localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
         localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
         localStorage.removeItem(STORAGE_KEYS.USER);
-        window.location.href = '/login';
+        const { store } = await import('@/app/store');
+        const { setUser, openAuthModal } = await import('@/features/auth');
+        store.dispatch(setUser(null));
+        store.dispatch(openAuthModal({ tab: 0 }));
         return Promise.reject(refreshError);
       }
     }
