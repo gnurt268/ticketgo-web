@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Paper,
@@ -18,25 +18,43 @@ import {
   Alert,
   Skeleton,
   Pagination,
+  Stack,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  FormControlLabel,
+  Switch,
 } from '@mui/material';
 import {
   Star as StarIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   Close as CloseIcon,
+  FilterAltOff as FilterAltOffIcon,
 } from '@mui/icons-material';
 import { useAuth } from '@/hooks';
 import axiosInstance from '@/api/axiosInstance';
 import { formatDate } from '@/utils/helpers';
 
+const PAGE_SIZE = 10;
+
 const ReviewSection = ({ eventId, isEventEnded }) => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
   const [summary, setSummary] = useState(null);
   const [reviews, setReviews] = useState([]);
+  const [totalFiltered, setTotalFiltered] = useState(0);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Filter state
+  const [filterRating, setFilterRating] = useState(null); // null | 1..5
+  const [sortBy, setSortBy] = useState('newest'); // newest | oldest | highest | lowest
+  const [withCommentOnly, setWithCommentOnly] = useState(false);
+
   // Review form state
   const [dialogOpen, setDialogOpen] = useState(false);
   const [formRating, setFormRating] = useState(5);
@@ -46,45 +64,78 @@ const ReviewSection = ({ eventId, isEventEnded }) => {
   const [editingReview, setEditingReview] = useState(null);
   const [error, setError] = useState('');
 
-  // Fetch review summary
+  const fetchSummary = useCallback(async () => {
+    const response = await axiosInstance.get(`/reviews/event/${eventId}/summary`);
+    setSummary(response.data);
+  }, [eventId]);
+
+  // Initial summary load
   useEffect(() => {
-    const fetchSummary = async () => {
+    if (!eventId || !isEventEnded) return;
+    let active = true;
+    (async () => {
       try {
         setLoading(true);
         const response = await axiosInstance.get(`/reviews/event/${eventId}/summary`);
-        setSummary(response.data);
-        setReviews(response.data.recentReviews || []);
+        if (active) setSummary(response.data);
+      } catch (err) {
+        console.error('Error fetching review summary:', err);
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => { active = false; };
+  }, [eventId, isEventEnded]);
+
+  // Fetch reviews on filter/sort/page change
+  useEffect(() => {
+    if (!eventId || !isEventEnded) return;
+    let active = true;
+    (async () => {
+      try {
+        setReviewsLoading(true);
+        const response = await axiosInstance.get(`/reviews/event/${eventId}`, {
+          params: {
+            page: page - 1,
+            size: PAGE_SIZE,
+            sort: sortBy,
+            ...(filterRating != null ? { rating: filterRating } : {}),
+            ...(withCommentOnly ? { withComment: true } : {}),
+          },
+        });
+        if (!active) return;
+        setReviews(response.data.content || []);
+        setTotalPages(response.data.totalPages || 1);
+        setTotalFiltered(response.data.totalElements || 0);
       } catch (err) {
         console.error('Error fetching reviews:', err);
       } finally {
-        setLoading(false);
+        if (active) setReviewsLoading(false);
       }
-    };
+    })();
+    return () => { active = false; };
+  }, [eventId, isEventEnded, page, sortBy, filterRating, withCommentOnly, refreshKey]);
 
-    if (eventId && isEventEnded) {
-      fetchSummary();
-    }
-  }, [eventId, isEventEnded]);
+  const handleFilterRating = (value) => {
+    setFilterRating(value);
+    setPage(1);
+  };
+  const handleSortChange = (value) => {
+    setSortBy(value);
+    setPage(1);
+  };
+  const handleWithCommentChange = (checked) => {
+    setWithCommentOnly(checked);
+    setPage(1);
+  };
+  const handleResetFilters = () => {
+    setFilterRating(null);
+    setSortBy('newest');
+    setWithCommentOnly(false);
+    setPage(1);
+  };
 
-  // Fetch more reviews when page changes
-  useEffect(() => {
-    const fetchReviews = async () => {
-      if (page === 1) return; // First page is loaded with summary
-      try {
-        const response = await axiosInstance.get(`/reviews/event/${eventId}`, {
-          params: { page: page - 1, size: 10 }
-        });
-        setReviews(response.data.content || []);
-        setTotalPages(response.data.totalPages || 1);
-      } catch (err) {
-        console.error('Error fetching reviews:', err);
-      }
-    };
-
-    if (eventId && page > 1) {
-      fetchReviews();
-    }
-  }, [eventId, page]);
+  const isFilterActive = filterRating != null || withCommentOnly || sortBy !== 'newest';
 
   const handleOpenDialog = (review = null) => {
     if (review) {
@@ -130,11 +181,9 @@ const ReviewSection = ({ eventId, isEventEnded }) => {
         await axiosInstance.post('/reviews', data);
       }
 
-      // Refresh summary
-      const response = await axiosInstance.get(`/reviews/event/${eventId}/summary`);
-      setSummary(response.data);
-      setReviews(response.data.recentReviews || []);
-      
+      await fetchSummary();
+      setRefreshKey((k) => k + 1);
+
       handleCloseDialog();
     } catch (err) {
       setError(err.response?.data?.message || 'Có lỗi xảy ra');
@@ -148,11 +197,9 @@ const ReviewSection = ({ eventId, isEventEnded }) => {
 
     try {
       await axiosInstance.delete(`/reviews/${reviewId}`);
-      
-      // Refresh
-      const response = await axiosInstance.get(`/reviews/event/${eventId}/summary`);
-      setSummary(response.data);
-      setReviews(response.data.recentReviews || []);
+
+      await fetchSummary();
+      setRefreshKey((k) => k + 1);
     } catch (err) {
       alert(err.response?.data?.message || 'Có lỗi xảy ra');
     }
@@ -280,16 +327,110 @@ const ReviewSection = ({ eventId, isEventEnded }) => {
         Tất cả đánh giá ({totalReviews})
       </Typography>
 
-      {reviews.length === 0 ? (
+      {/* Filters */}
+      {totalReviews > 0 && (
+        <Box sx={{ mb: 2 }}>
+          <Stack
+            direction={{ xs: 'column', md: 'row' }}
+            spacing={2}
+            alignItems={{ xs: 'flex-start', md: 'center' }}
+            justifyContent="space-between"
+            sx={{ mb: 1.5 }}
+          >
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+              <Chip
+                label="Tất cả"
+                size="small"
+                color={filterRating == null ? 'primary' : 'default'}
+                variant={filterRating == null ? 'filled' : 'outlined'}
+                onClick={() => handleFilterRating(null)}
+              />
+              {[5, 4, 3, 2, 1].map((star) => (
+                <Chip
+                  key={star}
+                  size="small"
+                  color={filterRating === star ? 'primary' : 'default'}
+                  variant={filterRating === star ? 'filled' : 'outlined'}
+                  onClick={() => handleFilterRating(star)}
+                  icon={<StarIcon sx={{ fontSize: 14, color: filterRating === star ? 'inherit' : '#F59E0B' }} />}
+                  label={`${star} (${ratingDistribution[star] || 0})`}
+                />
+              ))}
+            </Stack>
+
+            <Stack direction="row" spacing={1.5} alignItems="center">
+              <FormControl size="small" sx={{ minWidth: 160 }}>
+                <InputLabel id="review-sort-label">Sắp xếp</InputLabel>
+                <Select
+                  labelId="review-sort-label"
+                  label="Sắp xếp"
+                  value={sortBy}
+                  onChange={(e) => handleSortChange(e.target.value)}
+                >
+                  <MenuItem value="newest">Mới nhất</MenuItem>
+                  <MenuItem value="oldest">Cũ nhất</MenuItem>
+                  <MenuItem value="highest">Đánh giá cao</MenuItem>
+                  <MenuItem value="lowest">Đánh giá thấp</MenuItem>
+                </Select>
+              </FormControl>
+
+              <FormControlLabel
+                control={
+                  <Switch
+                    size="small"
+                    checked={withCommentOnly}
+                    onChange={(e) => handleWithCommentChange(e.target.checked)}
+                  />
+                }
+                label="Có nhận xét"
+              />
+
+              {isFilterActive && (
+                <IconButton size="small" onClick={handleResetFilters} title="Xoá bộ lọc">
+                  <FilterAltOffIcon fontSize="small" />
+                </IconButton>
+              )}
+            </Stack>
+          </Stack>
+
+          <Typography variant="caption" color="text.secondary">
+            {reviewsLoading ? 'Đang tải...' : `Hiển thị ${totalFiltered} đánh giá`}
+          </Typography>
+        </Box>
+      )}
+
+      {reviewsLoading ? (
+        <Box>
+          {[1, 2, 3].map((i) => (
+            <Box key={i} sx={{ py: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <Skeleton variant="circular" width={40} height={40} />
+                <Box sx={{ flex: 1 }}>
+                  <Skeleton variant="text" width="40%" />
+                  <Skeleton variant="text" width="80%" />
+                  <Skeleton variant="text" width="60%" />
+                </Box>
+              </Box>
+            </Box>
+          ))}
+        </Box>
+      ) : reviews.length === 0 ? (
         <Box sx={{ textAlign: 'center', py: 4 }}>
-          <Typography color="text.secondary">Chưa có đánh giá nào</Typography>
+          <Typography color="text.secondary">
+            {isFilterActive ? 'Không có đánh giá nào khớp với bộ lọc' : 'Chưa có đánh giá nào'}
+          </Typography>
+          {isFilterActive && (
+            <Button size="small" onClick={handleResetFilters} sx={{ mt: 1 }}>
+              Xoá bộ lọc
+            </Button>
+          )}
         </Box>
       ) : (
         <Box>
           {reviews.map((review) => (
             <Box key={review.id} sx={{ py: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
               <Box sx={{ display: 'flex', gap: 2 }}>
-                <Avatar sx={{ bgcolor: 'primary.main' }}>
+                <Avatar src={review.userAvatarUrl || undefined} sx={{ bgcolor: 'primary.main' }}>
                   {review.userName?.charAt(0) || 'U'}
                 </Avatar>
                 <Box sx={{ flex: 1 }}>
@@ -314,11 +455,11 @@ const ReviewSection = ({ eventId, isEventEnded }) => {
           {/* Pagination */}
           {totalPages > 1 && (
             <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
-              <Pagination 
-                count={totalPages} 
-                page={page} 
-                onChange={(_, p) => setPage(p)} 
-                color="primary" 
+              <Pagination
+                count={totalPages}
+                page={page}
+                onChange={(_, p) => setPage(p)}
+                color="primary"
               />
             </Box>
           )}
