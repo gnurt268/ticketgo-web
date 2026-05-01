@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -40,8 +40,8 @@ import {
   RateReview,
   Event as EventIcon,
   ErrorOutline,
-  Link as LinkIcon,
   Business,
+  PhotoCamera,
 } from '@mui/icons-material';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -68,13 +68,10 @@ const profileSchema = yup.object({
       message: 'Số điện thoại không hợp lệ',
       excludeEmptyString: true,
     }),
-  avatarUrl: yup
-    .string()
-    .nullable()
-    .transform((value) => (value === '' ? null : value))
-    .max(500, 'Đường dẫn ảnh tối đa 500 ký tự')
-    .url('Đường dẫn ảnh không hợp lệ'),
 });
+
+const MAX_AVATAR_SIZE = 5 * 1024 * 1024;
+const ACCEPTED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
 const passwordSchema = yup.object({
   currentPassword: yup.string().required('Vui lòng nhập mật khẩu hiện tại'),
@@ -154,23 +151,23 @@ const ProfilePage = () => {
     new: false,
     confirm: false,
   });
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const avatarInputRef = useRef(null);
 
   const {
     control: profileControl,
     handleSubmit: handleProfileSubmit,
     reset: resetProfile,
-    watch: watchProfile,
     formState: { errors: profileErrors },
   } = useForm({
     resolver: yupResolver(profileSchema),
     defaultValues: {
       fullName: '',
       phone: '',
-      avatarUrl: '',
     },
   });
-
-  const watchedAvatarUrl = watchProfile('avatarUrl');
 
   const {
     control: passwordControl,
@@ -195,7 +192,6 @@ const ProfilePage = () => {
       resetProfile({
         fullName: res.data.fullName || '',
         phone: res.data.phone || '',
-        avatarUrl: res.data.avatarUrl || '',
       });
     } catch (error) {
       setProfileError(getErrorMessage(error));
@@ -208,30 +204,83 @@ const ProfilePage = () => {
     loadProfile();
   }, [loadProfile]);
 
+  const clearAvatarSelection = useCallback(() => {
+    setAvatarFile(null);
+    setAvatarPreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+    if (avatarInputRef.current) {
+      avatarInputRef.current.value = '';
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+    };
+  }, [avatarPreview]);
+
+  const handleAvatarChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!ACCEPTED_AVATAR_TYPES.includes(file.type)) {
+      toast.error('Chỉ chấp nhận ảnh JPG, PNG, GIF hoặc WEBP');
+      event.target.value = '';
+      return;
+    }
+    if (file.size > MAX_AVATAR_SIZE) {
+      toast.error('Ảnh tối đa 5MB');
+      event.target.value = '';
+      return;
+    }
+    setAvatarPreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(file);
+    });
+    setAvatarFile(file);
+  };
+
+  const handleAvatarButtonClick = () => {
+    avatarInputRef.current?.click();
+  };
+
   const handleCancelEdit = () => {
     setIsEditing(false);
+    clearAvatarSelection();
     resetProfile({
       fullName: profile?.fullName || '',
       phone: profile?.phone || '',
-      avatarUrl: profile?.avatarUrl || '',
     });
   };
 
   const onProfileSubmit = async (data) => {
     try {
       setProfileLoading(true);
+      let avatarUrl = profile?.avatarUrl ?? null;
+
+      if (avatarFile) {
+        setAvatarUploading(true);
+        try {
+          const uploadRes = await profileAPI.uploadAvatar(avatarFile);
+          avatarUrl = uploadRes.data?.avatarUrl ?? uploadRes.data?.url ?? uploadRes.data;
+        } finally {
+          setAvatarUploading(false);
+        }
+      }
+
       const payload = {
         fullName: data.fullName,
         phone: data.phone || null,
-        avatarUrl: data.avatarUrl || null,
+        avatarUrl: avatarUrl || null,
       };
       const res = await profileAPI.updateProfile(payload);
       setProfile(res.data);
       resetProfile({
         fullName: res.data.fullName || '',
         phone: res.data.phone || '',
-        avatarUrl: res.data.avatarUrl || '',
       });
+      clearAvatarSelection();
       const refreshed = await dispatch(getCurrentUser()).unwrap();
       localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(refreshed));
       setIsEditing(false);
@@ -267,7 +316,7 @@ const ProfilePage = () => {
   const displayName = profile?.fullName || user?.fullName || '';
   const displayEmail = profile?.email || user?.email || '';
   const displayRole = profile?.role || user?.role;
-  const previewAvatarUrl = isEditing ? watchedAvatarUrl : profile?.avatarUrl;
+  const previewAvatarUrl = avatarPreview || profile?.avatarUrl;
   const canRegisterOrganizer =
     displayRole && displayRole !== ROLES.ORGANIZER && displayRole !== ROLES.ADMIN;
 
@@ -542,29 +591,144 @@ const ProfilePage = () => {
                       color="inherit"
                       startIcon={<Cancel />}
                       onClick={handleCancelEdit}
-                      disabled={profileLoading}
+                      disabled={profileLoading || avatarUploading}
                     >
                       Hủy
                     </Button>
                     <Button
                       variant="contained"
                       startIcon={
-                        profileLoading ? (
+                        profileLoading || avatarUploading ? (
                           <CircularProgress size={18} color="inherit" />
                         ) : (
                           <Save />
                         )
                       }
                       type="submit"
-                      disabled={profileLoading}
+                      disabled={profileLoading || avatarUploading}
                     >
-                      Lưu thay đổi
+                      {avatarUploading ? 'Đang tải ảnh...' : 'Lưu thay đổi'}
                     </Button>
                   </Box>
                 )}
               </Box>
 
               <Grid container spacing={3}>
+                <Grid size={{ xs: 12 }}>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mb: 1.5, fontWeight: 500 }}
+                  >
+                    Ảnh đại diện
+                  </Typography>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 2.5,
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    <Box sx={{ position: 'relative', display: 'inline-flex' }}>
+                      <Avatar
+                        src={previewAvatarUrl || undefined}
+                        sx={{
+                          width: 96,
+                          height: 96,
+                          fontSize: '2rem',
+                          fontWeight: 700,
+                          bgcolor: 'primary.main',
+                          border: '2px solid',
+                          borderColor: 'divider',
+                        }}
+                      >
+                        {displayName ? getInitials(displayName) : <Person />}
+                      </Avatar>
+                      {isEditing && (
+                        <Tooltip title="Thay ảnh đại diện">
+                          <span>
+                            <IconButton
+                              onClick={handleAvatarButtonClick}
+                              disabled={profileLoading || avatarUploading}
+                              sx={{
+                                position: 'absolute',
+                                bottom: -4,
+                                right: -4,
+                                bgcolor: 'primary.main',
+                                color: 'white',
+                                width: 36,
+                                height: 36,
+                                border: '2px solid white',
+                                boxShadow: 2,
+                                '&:hover': { bgcolor: 'primary.dark' },
+                                '&.Mui-disabled': {
+                                  bgcolor: 'action.disabledBackground',
+                                  color: 'action.disabled',
+                                },
+                              }}
+                            >
+                              {avatarUploading ? (
+                                <CircularProgress size={18} color="inherit" />
+                              ) : (
+                                <PhotoCamera sx={{ fontSize: 18 }} />
+                              )}
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                      )}
+                    </Box>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      {isEditing ? (
+                        <>
+                          <Typography variant="body2" color="text.secondary">
+                            Nhấn vào biểu tượng máy ảnh để chọn ảnh mới.
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                            Định dạng: JPG, PNG, GIF, WEBP. Tối đa 5MB.
+                          </Typography>
+                          {avatarFile && (
+                            <Stack
+                              direction="row"
+                              spacing={1}
+                              alignItems="center"
+                              sx={{ mt: 1, flexWrap: 'wrap' }}
+                            >
+                              <Chip
+                                size="small"
+                                color="success"
+                                label={`Đã chọn: ${avatarFile.name}`}
+                                sx={{ maxWidth: 240 }}
+                              />
+                              <Button
+                                size="small"
+                                color="inherit"
+                                onClick={clearAvatarSelection}
+                                disabled={avatarUploading}
+                              >
+                                Bỏ chọn
+                              </Button>
+                            </Stack>
+                          )}
+                        </>
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">
+                          {profile?.avatarUrl
+                            ? 'Bấm "Chỉnh sửa" để thay ảnh đại diện.'
+                            : 'Chưa có ảnh đại diện. Bấm "Chỉnh sửa" để tải ảnh lên.'}
+                        </Typography>
+                      )}
+                    </Box>
+                    <input
+                      ref={avatarInputRef}
+                      type="file"
+                      accept={ACCEPTED_AVATAR_TYPES.join(',')}
+                      hidden
+                      onChange={handleAvatarChange}
+                    />
+                  </Box>
+                </Grid>
+
                 <Grid size={{ xs: 12 }}>
                   <Controller
                     name="fullName"
@@ -638,33 +802,6 @@ const ProfilePage = () => {
                   />
                 </Grid>
 
-                <Grid size={{ xs: 12 }}>
-                  <Controller
-                    name="avatarUrl"
-                    control={profileControl}
-                    render={({ field }) => (
-                      <TextField
-                        {...field}
-                        label="Đường dẫn ảnh đại diện"
-                        fullWidth
-                        disabled={!isEditing || loadingProfile}
-                        error={!!profileErrors.avatarUrl}
-                        helperText={
-                          profileErrors.avatarUrl?.message ||
-                          (isEditing ? 'Dán URL ảnh (https://...). Để trống để dùng chữ cái đầu.' : '')
-                        }
-                        placeholder="https://example.com/avatar.jpg"
-                        InputProps={{
-                          startAdornment: (
-                            <InputAdornment position="start">
-                              <LinkIcon sx={{ color: isEditing ? 'primary.main' : 'text.secondary' }} />
-                            </InputAdornment>
-                          ),
-                        }}
-                      />
-                    )}
-                  />
-                </Grid>
               </Grid>
             </Box>
           )}

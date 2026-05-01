@@ -9,6 +9,14 @@ const profileAPI = {
     return axiosInstance.put('/users/profile', data);
   },
 
+  uploadAvatar: (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return axiosInstance.post('/users/avatar', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+
   changePassword: (data) => {
     return axiosInstance.put('/users/change-password', data);
   },
