@@ -12,7 +12,7 @@ import {
 } from "@/features/orders";
 import { MyTicketsPage } from "@/features/tickets";
 import { ProfilePage } from "@/features/profile";
-import { CheckInPage } from "@/features/checkin";
+import { CheckInPage, CheckinEventPickerPage } from "@/features/checkin";
 import { WaitingRoomPage } from "@/features/waitingroom";
 import { VerifyEmailPage } from "@/features/auth";
 
@@ -40,6 +40,14 @@ const router = createBrowserRouter([
   // Check-in route (full screen)
   {
     path: "/checkin",
+    element: (
+      <PrivateRoute roles={[ROLES.STAFF, ROLES.ORGANIZER, ROLES.ADMIN]}>
+        <CheckinEventPickerPage />
+      </PrivateRoute>
+    ),
+  },
+  {
+    path: "/checkin/:eventId",
     element: (
       <PrivateRoute roles={[ROLES.STAFF, ROLES.ORGANIZER, ROLES.ADMIN]}>
         <CheckInPage />
@@ -96,7 +104,7 @@ const router = createBrowserRouter([
       {
         path: "my-tickets",
         element: (
-          <PrivateRoute>
+          <PrivateRoute roles={[ROLES.USER]}>
             <MyTicketsPage />
           </PrivateRoute>
         ),
@@ -140,7 +148,7 @@ const router = createBrowserRouter([
   {
     path: "/organizer",
     element: (
-      <PrivateRoute roles={[ROLES.ORGANIZER, ROLES.ADMIN]}>
+      <PrivateRoute roles={[ROLES.ORGANIZER]}>
         <OrganizerLayout />
       </PrivateRoute>
     ),

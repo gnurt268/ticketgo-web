@@ -46,6 +46,7 @@ import { ROUTES, ROLES } from '@/utils/constants';
 import { getInitials } from '@/utils/helpers';
 import { AuthModal } from '@/components/common';
 import { Logo } from '@/assets/brand';
+import useCategories, { categoryIconSrc } from '@/features/events/useCategories';
 
 // Animations
 const shimmer = keyframes`
@@ -127,19 +128,15 @@ const Header = () => {
     setSearchQuery('');
   };
 
-  const categories = [
-    { label: 'Nhạc sống', value: '1', icon: '🎵' },
-    { label: 'Sân khấu & Nghệ thuật', value: '2', icon: '🎭' },
-    { label: 'Thể thao', value: '3', icon: '⚽' },
-    { label: 'Khác', value: '4', icon: '🎪' },
-  ];
+  // Danh mục lấy động từ BE (GET /api/categories) thay vì hardcode
+  const { categories } = useCategories();
 
   const menuItems = [
     {
       label: 'Vé của tôi',
       icon: <ConfirmationNumber />,
       path: ROUTES.MY_TICKETS,
-      show: true,
+      show: user?.role === ROLES.USER,
     },
     {
       label: 'Tài khoản',
@@ -157,7 +154,7 @@ const Header = () => {
       label: 'Quản lý sự kiện',
       icon: <Event />,
       path: ROUTES.ORGANIZER_DASHBOARD,
-      show: user?.role === ROLES.ORGANIZER || user?.role === ROLES.ADMIN,
+      show: user?.role === ROLES.ORGANIZER,
     },
     {
       label: 'Admin Dashboard',
@@ -287,8 +284,7 @@ const Header = () => {
             {/* Action Buttons */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               {/* Tạo sự kiện button */}
-              {isAuthenticated &&
-                (user?.role === ROLES.ORGANIZER || user?.role === ROLES.ADMIN) && (
+              {isAuthenticated && user?.role === ROLES.ORGANIZER && (
                   <Button
                     variant="outlined"
                     startIcon={<Add />}
@@ -612,6 +608,7 @@ const Header = () => {
         </Container>
 
         {/* Category Navigation */}
+        {categories.length > 0 && (
         <Box
           sx={{
             background: 'linear-gradient(135deg, #5E35B1 0%, #7C3AED 100%)',
@@ -642,12 +639,12 @@ const Header = () => {
               }}
             >
               {categories.map((item) => {
-                const isActive = getActiveCategory() === item.value;
+                const isActive = getActiveCategory() === String(item.id);
                 return (
                   <Button
-                    key={item.value}
+                    key={item.id}
                     component={Link}
-                    to={`/events?category=${item.value}`}
+                    to={`/events?category=${item.id}`}
                     sx={{
                       color: 'white',
                       fontWeight: isActive ? 700 : 500,
@@ -680,16 +677,25 @@ const Header = () => {
                       },
                     }}
                   >
-                    <Box component="span" sx={{ mr: 0.75, fontSize: '1rem' }}>
-                      {item.icon}
-                    </Box>
-                    {item.label}
+                    <Box
+                      component="img"
+                      src={categoryIconSrc(item)}
+                      alt=""
+                      sx={{
+                        width: 18,
+                        height: 18,
+                        mr: 0.75,
+                        filter: 'brightness(0) invert(1)',
+                      }}
+                    />
+                    {item.name}
                   </Button>
                 );
               })}
             </Box>
           </Container>
         </Box>
+        )}
       </AppBar>
 
       {/* Auth Modal */}

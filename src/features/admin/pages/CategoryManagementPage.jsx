@@ -19,7 +19,6 @@ import {
   Alert,
   Snackbar,
   Skeleton,
-  Avatar,
   Chip,
   Tooltip,
 } from "@mui/material";
@@ -28,15 +27,16 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Refresh as RefreshIcon,
-  Category as CategoryIcon,
   Event as EventIcon,
 } from "@mui/icons-material";
 import {
-  getCategories,
+  getAllCategories,
   createCategory,
   updateCategory,
   deleteCategory,
 } from "../api/adminAPI";
+import { categoryIconSrc } from "@/features/events/useCategories";
+import { CATEGORY_ICON_OPTIONS } from "@/features/events/categoryIcons";
 
 const CategoryManagementPage = () => {
   const [loading, setLoading] = useState(true);
@@ -59,7 +59,7 @@ const CategoryManagementPage = () => {
   const fetchCategories = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await getCategories();
+      const data = await getAllCategories();
       setCategories(data || []);
     } catch (error) {
       showSnackbar("Lỗi khi tải danh sách", "error");
@@ -194,16 +194,28 @@ const CategoryManagementPage = () => {
                       <Box
                         sx={{ display: "flex", alignItems: "center", gap: 1 }}
                       >
-                        <Avatar
+                        <Box
+                          component="img"
+                          src={categoryIconSrc(cat)}
+                          alt=""
                           sx={{
-                            bgcolor: "primary.main",
                             width: 32,
                             height: 32,
+                            p: 0.5,
+                            borderRadius: 1,
+                            bgcolor: "grey.100",
+                            flexShrink: 0,
                           }}
-                        >
-                          <CategoryIcon fontSize="small" />
-                        </Avatar>
+                        />
                         <Typography fontWeight={600}>{cat.name}</Typography>
+                        {!cat.isActive && (
+                          <Chip
+                            label="Ẩn"
+                            size="small"
+                            color="default"
+                            variant="outlined"
+                          />
+                        )}
                       </Box>
                     </TableCell>
                     <TableCell>
@@ -283,6 +295,45 @@ const CategoryManagementPage = () => {
             multiline
             rows={3}
           />
+
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 3, mb: 1 }}>
+            Icon danh mục
+          </Typography>
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+            {CATEGORY_ICON_OPTIONS.map((opt) => {
+              const selected = formData.iconUrl === opt.path;
+              return (
+                <Tooltip title={opt.label} key={opt.path}>
+                  <Box
+                    onClick={() =>
+                      setFormData({ ...formData, iconUrl: opt.path })
+                    }
+                    sx={{
+                      width: 56,
+                      height: 56,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      borderRadius: 2,
+                      cursor: "pointer",
+                      border: "2px solid",
+                      borderColor: selected ? "primary.main" : "divider",
+                      bgcolor: selected ? "action.selected" : "transparent",
+                      transition: "all 0.15s ease",
+                      "&:hover": { borderColor: "primary.light" },
+                    }}
+                  >
+                    <Box
+                      component="img"
+                      src={opt.path}
+                      alt={opt.label}
+                      sx={{ width: 28, height: 28 }}
+                    />
+                  </Box>
+                </Tooltip>
+              );
+            })}
+          </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDialogOpen(false)}>Hủy</Button>

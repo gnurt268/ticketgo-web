@@ -118,6 +118,12 @@ export const getCategories = async () => {
   return response.data;
 };
 
+// ADMIN: gồm cả category đã ẩn (inactive)
+export const getAllCategories = async () => {
+  const response = await axiosInstance.get("/categories/all");
+  return response.data;
+};
+
 export const createCategory = async (data) => {
   const response = await axiosInstance.post("/categories", data);
   return response.data;

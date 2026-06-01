@@ -319,24 +319,31 @@ const ProfilePage = () => {
   const previewAvatarUrl = avatarPreview || profile?.avatarUrl;
   const canRegisterOrganizer =
     displayRole && displayRole !== ROLES.ORGANIZER && displayRole !== ROLES.ADMIN;
+  // Chỉ USER là người mua (BE chỉ cấp /orders, /tickets cho buyer; ORG/ADMIN ẩn UI, STAFF không có quyền)
+  const isBuyer = displayRole === ROLES.USER;
 
-  const stats = [
-    {
-      key: 'orders',
-      label: 'Đơn hàng',
-      value: profile?.totalOrders ?? 0,
-      icon: <ShoppingBag />,
-      color: 'primary.main',
-      onClick: () => setActiveTab(1),
-    },
-    {
-      key: 'tickets',
-      label: 'Vé đã mua',
-      value: profile?.totalTickets ?? 0,
-      icon: <ConfirmationNumber />,
-      color: 'info.main',
-      onClick: () => navigate('/my-tickets'),
-    },
+  const stats = [];
+  if (isBuyer) {
+    stats.push(
+      {
+        key: 'orders',
+        label: 'Đơn hàng',
+        value: profile?.totalOrders ?? 0,
+        icon: <ShoppingBag />,
+        color: 'primary.main',
+        onClick: () => setActiveTab(1),
+      },
+      {
+        key: 'tickets',
+        label: 'Vé đã mua',
+        value: profile?.totalTickets ?? 0,
+        icon: <ConfirmationNumber />,
+        color: 'info.main',
+        onClick: () => navigate('/my-tickets'),
+      },
+    );
+  }
+  stats.push(
     {
       key: 'spent',
       label: 'Tổng chi tiêu',
@@ -351,7 +358,7 @@ const ProfilePage = () => {
       icon: <RateReview />,
       color: 'warning.main',
     },
-  ];
+  );
 
   if (displayRole === ROLES.ORGANIZER || displayRole === ROLES.ADMIN) {
     stats.push({
@@ -534,11 +541,14 @@ const ProfilePage = () => {
             onChange={(_, newValue) => setActiveTab(newValue)}
             sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}
           >
-            <Tab icon={<Person />} iconPosition="start" label="Thông tin cá nhân" sx={{ minHeight: 56 }} />
-            <Tab icon={<ShoppingBag />} iconPosition="start" label="Đơn hàng của tôi" sx={{ minHeight: 56 }} />
-            <Tab icon={<Lock />} iconPosition="start" label="Đổi mật khẩu" sx={{ minHeight: 56 }} />
+            <Tab value={0} icon={<Person />} iconPosition="start" label="Thông tin cá nhân" sx={{ minHeight: 56 }} />
+            {isBuyer && (
+              <Tab value={1} icon={<ShoppingBag />} iconPosition="start" label="Đơn hàng của tôi" sx={{ minHeight: 56 }} />
+            )}
+            <Tab value={2} icon={<Lock />} iconPosition="start" label="Đổi mật khẩu" sx={{ minHeight: 56 }} />
             {canRegisterOrganizer && (
               <Tab
+                value={3}
                 icon={<Business />}
                 iconPosition="start"
                 label="Đăng ký Ban tổ chức"
@@ -548,7 +558,7 @@ const ProfilePage = () => {
           </Tabs>
 
           {/* Tab 1: Orders */}
-          {activeTab === 1 && <OrdersTab active={activeTab === 1} />}
+          {isBuyer && activeTab === 1 && <OrdersTab active={activeTab === 1} />}
 
           {/* Tab 3: Organizer Request */}
           {canRegisterOrganizer && activeTab === 3 && (

@@ -60,6 +60,16 @@ const organizerAPI = {
 
   validateTicket: (ticketCode) =>
     axiosInstance.get(`/tickets/organizer/validate/${ticketCode}`),
+
+  // ===== Nhân viên check-in (EventStaff) =====
+  getEventStaff: (eventId) =>
+    axiosInstance.get(`/organizer/events/${eventId}/staff`),
+
+  assignEventStaff: (eventId, email) =>
+    axiosInstance.post(`/organizer/events/${eventId}/staff`, { email }),
+
+  removeEventStaff: (eventId, userId) =>
+    axiosInstance.delete(`/organizer/events/${eventId}/staff/${userId}`),
 };
 
 export default organizerAPI;

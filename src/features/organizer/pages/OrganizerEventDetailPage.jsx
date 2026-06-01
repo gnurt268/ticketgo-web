@@ -44,6 +44,7 @@ import {
   ConfirmationNumber,
   CheckCircle,
   HighlightOff,
+  QrCodeScanner,
 } from '@mui/icons-material';
 import { toast } from 'react-toastify';
 import organizerAPI from '../organizerAPI';
@@ -111,6 +112,12 @@ const OrganizerEventDetailPage = () => {
   const [ticketSize, setTicketSize] = useState(20);
   const [ticketStatus, setTicketStatus] = useState('');
 
+  // Staff (nhân viên check-in)
+  const [staff, setStaff] = useState([]);
+  const [staffLoading, setStaffLoading] = useState(false);
+  const [staffEmail, setStaffEmail] = useState('');
+  const [assigningStaff, setAssigningStaff] = useState(false);
+
   const loadEvent = useCallback(async () => {
     try {
       setLoading(true);
@@ -149,6 +156,18 @@ const OrganizerEventDetailPage = () => {
     }
   }, [id, ticketPage, ticketSize, ticketStatus]);
 
+  const loadStaff = useCallback(async () => {
+    try {
+      setStaffLoading(true);
+      const res = await organizerAPI.getEventStaff(id);
+      setStaff(res.data || []);
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setStaffLoading(false);
+    }
+  }, [id]);
+
   useEffect(() => {
     loadEvent();
   }, [loadEvent]);
@@ -160,6 +179,10 @@ const OrganizerEventDetailPage = () => {
   useEffect(() => {
     if (tab === 2) loadTickets();
   }, [tab, loadTickets]);
+
+  useEffect(() => {
+    if (tab === 3) loadStaff();
+  }, [tab, loadStaff]);
 
   const handleSubmitForApproval = async () => {
     try {
@@ -193,6 +216,33 @@ const OrganizerEventDetailPage = () => {
       toast.error(getErrorMessage(err));
     } finally {
       setCancelling(false);
+    }
+  };
+
+  const handleAssignStaff = async (e) => {
+    e.preventDefault();
+    if (!staffEmail.trim()) return;
+    try {
+      setAssigningStaff(true);
+      await organizerAPI.assignEventStaff(id, staffEmail.trim());
+      toast.success('Đã giao nhân viên check-in');
+      setStaffEmail('');
+      loadStaff();
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setAssigningStaff(false);
+    }
+  };
+
+  const handleRemoveStaff = async (userId) => {
+    if (!window.confirm('Gỡ nhân viên này khỏi sự kiện?')) return;
+    try {
+      await organizerAPI.removeEventStaff(id, userId);
+      toast.success('Đã gỡ nhân viên');
+      loadStaff();
+    } catch (err) {
+      toast.error(getErrorMessage(err));
     }
   };
 
@@ -271,6 +321,15 @@ const OrganizerEventDetailPage = () => {
         </Stack>
 
         <Stack direction="row" spacing={1} flexWrap="wrap">
+          {event.status === 'PUBLISHED' && (
+            <Button
+              variant="contained"
+              startIcon={<QrCodeScanner />}
+              onClick={() => navigate(`/checkin/${id}`)}
+            >
+              Check-in
+            </Button>
+          )}
           {canEdit && (
             <Button
               variant="outlined"
@@ -353,6 +412,7 @@ const OrganizerEventDetailPage = () => {
           <Tab label="Thông tin" />
           <Tab label="Khu vực vé" />
           <Tab label="Vé đã bán" />
+          <Tab label="Nhân viên check-in" />
         </Tabs>
         <Divider />
 
@@ -751,6 +811,89 @@ const OrganizerEventDetailPage = () => {
                   rowsPerPageOptions={[10, 20, 50]}
                 />
               </Paper>
+            )}
+          </Box>
+        )}
+
+        {/* Tab 3: Nhân viên check-in */}
+        {tab === 3 && (
+          <Box sx={{ p: 3 }}>
+            <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+              Nhân viên check-in ({staff.length})
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Giao nhân viên (tài khoản vai trò STAFF) để họ soát vé cho sự kiện này.
+            </Typography>
+
+            <Stack
+              component="form"
+              direction="row"
+              spacing={1}
+              onSubmit={handleAssignStaff}
+              sx={{ mb: 3, maxWidth: 480 }}
+            >
+              <TextField
+                fullWidth
+                size="small"
+                type="email"
+                placeholder="Email nhân viên (STAFF)"
+                value={staffEmail}
+                onChange={(e) => setStaffEmail(e.target.value)}
+              />
+              <Button
+                type="submit"
+                variant="contained"
+                startIcon={<Add />}
+                disabled={assigningStaff || !staffEmail.trim()}
+              >
+                Giao
+              </Button>
+            </Stack>
+
+            {staffLoading ? (
+              <Skeleton variant="rounded" height={120} />
+            ) : staff.length === 0 ? (
+              <Typography variant="body2" color="text.secondary">
+                Chưa có nhân viên nào được giao.
+              </Typography>
+            ) : (
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Nhân viên</TableCell>
+                    <TableCell>Email</TableCell>
+                    <TableCell>Ngày giao</TableCell>
+                    <TableCell align="right">Hành động</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {staff.map((s) => (
+                    <TableRow key={s.id} hover>
+                      <TableCell>
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <Avatar sx={{ width: 28, height: 28 }}>
+                            {(s.fullName || s.email || '?').charAt(0).toUpperCase()}
+                          </Avatar>
+                          <Typography variant="body2">{s.fullName || '—'}</Typography>
+                        </Stack>
+                      </TableCell>
+                      <TableCell>{s.email}</TableCell>
+                      <TableCell>{formatDateTime(s.assignedAt)}</TableCell>
+                      <TableCell align="right">
+                        <Tooltip title="Gỡ">
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => handleRemoveStaff(s.userId)}
+                          >
+                            <DeleteOutline fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             )}
           </Box>
         )}

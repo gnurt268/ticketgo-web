@@ -1,19 +1,24 @@
 import axiosInstance from '../../api/axiosInstance';
 
 const checkinAPI = {
-  // POST /api/checkin/validate - Validate QR without check-in
-  validateQR: (qrContent) => {
-    return axiosInstance.post('/checkin/validate', { qrContent });
+  // GET /api/checkin/events - sự kiện current-user được phép check-in
+  getMyEvents: () => {
+    return axiosInstance.get('/checkin/events');
   },
 
-  // POST /api/checkin/scan - Check-in by QR
-  scan: (qrContent) => {
-    return axiosInstance.post('/checkin/scan', { qrContent });
-  },
-
-  // GET /api/checkin/stats/{eventId} - Get stats
+  // GET /api/checkin/events/{eventId}/stats
   getEventStats: (eventId) => {
-    return axiosInstance.get(`/checkin/stats/${eventId}`);
+    return axiosInstance.get(`/checkin/events/${eventId}/stats`);
+  },
+
+  // POST /api/checkin/events/{eventId}/validate - preview vé (không ghi nhận)
+  validateQR: (eventId, qrContent) => {
+    return axiosInstance.post(`/checkin/events/${eventId}/validate`, { qrContent });
+  },
+
+  // POST /api/checkin/events/{eventId}/scan - check-in vé
+  scan: (eventId, qrContent) => {
+    return axiosInstance.post(`/checkin/events/${eventId}/scan`, { qrContent });
   },
 };
 

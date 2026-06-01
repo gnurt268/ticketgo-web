@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Box,
@@ -22,7 +22,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import dayjs from 'dayjs';
 import { toast } from 'react-toastify';
-import { axiosInstance } from '@/api';
+import useCategories from '@/features/events/useCategories';
 import organizerAPI from '../organizerAPI';
 import { getErrorMessage } from '@/utils/helpers';
 
@@ -76,7 +76,9 @@ const OrganizerEventFormPage = () => {
   const { id } = useParams();
   const isEdit = Boolean(id);
 
-  const [categories, setCategories] = useState([]);
+  const { categories } = useCategories();
+  // Category hiện tại của event khi edit (có thể đã bị ẩn / inactive)
+  const [editCategory, setEditCategory] = useState(null);
   const [loading, setLoading] = useState(isEdit);
   const [submitting, setSubmitting] = useState(false);
   const [loadError, setLoadError] = useState(null);
@@ -115,6 +117,17 @@ const OrganizerEventFormPage = () => {
 
   const title = watch('title');
 
+  // Gộp category đang chọn của event (nếu đã ẩn) vào danh sách active để dropdown vẫn hiển thị
+  const categoryOptions = useMemo(() => {
+    if (
+      editCategory &&
+      !categories.some((c) => String(c.id) === String(editCategory.id))
+    ) {
+      return [...categories, { ...editCategory, inactive: true }];
+    }
+    return categories;
+  }, [categories, editCategory]);
+
   // Auto-generate slug from title (only in create mode)
   useEffect(() => {
     if (!isEdit && title) {
@@ -129,13 +142,6 @@ const OrganizerEventFormPage = () => {
       setValue('slug', slug, { shouldValidate: false });
     }
   }, [title, isEdit, setValue]);
-
-  useEffect(() => {
-    axiosInstance
-      .get('/categories')
-      .then((res) => setCategories(res.data || []))
-      .catch(() => setCategories([]));
-  }, []);
 
   useEffect(() => {
     if (!isEdit) return;
@@ -165,6 +171,9 @@ const OrganizerEventFormPage = () => {
           faceRecognitionThreshold: ev.faceRecognitionThreshold || 0.7,
           requireFaceUpload: ev.requireFaceUpload !== false,
         });
+        setEditCategory(
+          ev.categoryId ? { id: ev.categoryId, name: ev.categoryName } : null
+        );
       } catch (err) {
         setLoadError(getErrorMessage(err));
       } finally {
@@ -287,9 +296,10 @@ const OrganizerEventFormPage = () => {
                   error={!!errors.categoryId}
                   helperText={errors.categoryId?.message}
                 >
-                  {categories.map((c) => (
+                  {categoryOptions.map((c) => (
                     <MenuItem key={c.id} value={c.id}>
                       {c.name}
+                      {c.inactive ? ' (đã ẩn)' : ''}
                     </MenuItem>
                   ))}
                 </TextField>

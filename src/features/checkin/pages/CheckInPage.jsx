@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
   Box,
@@ -42,8 +42,11 @@ import checkinAPI from '../checkinAPI';
 
 const CheckInPage = () => {
   const navigate = useNavigate();
+  const { eventId } = useParams();
   const user = useSelector(selectUser);
-  
+
+  const [eventInfo, setEventInfo] = useState(null);
+  const [accessError, setAccessError] = useState(false);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [manualInput, setManualInput] = useState('');
@@ -104,7 +107,7 @@ const CheckInPage = () => {
     setResult(null);
 
     try {
-      const response = await checkinAPI.scan(content);
+      const response = await checkinAPI.scan(eventId, content);
       const data = response.data;
 
       setResult(data);
@@ -123,7 +126,22 @@ const CheckInPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [lastScanTime, playSound]);
+  }, [eventId, lastScanTime, playSound]);
+
+  // Load thông tin sự kiện + kiểm tra quyền (sự kiện phải nằm trong danh sách được phép)
+  useEffect(() => {
+    if (!eventId) return;
+    (async () => {
+      try {
+        const res = await checkinAPI.getMyEvents();
+        const ev = (res.data || []).find((e) => String(e.id) === String(eventId));
+        if (ev) setEventInfo(ev);
+        else setAccessError(true);
+      } catch {
+        setAccessError(true);
+      }
+    })();
+  }, [eventId]);
 
   // Initialize scanner
   useEffect(() => {
@@ -183,6 +201,21 @@ const CheckInPage = () => {
     });
   };
 
+  if (accessError) {
+    return (
+      <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, p: 3, textAlign: 'center' }}>
+        <Cancel sx={{ fontSize: 64, color: '#EF4444' }} />
+        <Typography variant="h6" fontWeight={700}>Không có quyền soát vé sự kiện này</Typography>
+        <Typography variant="body2" color="text.secondary">
+          Bạn không sở hữu và chưa được giao cho sự kiện này.
+        </Typography>
+        <Button variant="contained" onClick={() => navigate('/checkin')} sx={{ bgcolor: '#7C3AED', '&:hover': { bgcolor: '#6D28D9' } }}>
+          Chọn sự kiện khác
+        </Button>
+      </Box>
+    );
+  }
+
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#f5f5f5' }}>
       {/* Header */}
@@ -203,12 +236,14 @@ const CheckInPage = () => {
             <ArrowBack />
           </IconButton>
           
-          <QrCodeScanner sx={{ mr: 1.5, fontSize: 28 }} />
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="h6" fontWeight={700} color='white'>
-              Check-in Scanner
+          <IconButton color="inherit" onClick={() => navigate('/checkin')} sx={{ mr: 1 }}>
+            <QrCodeScanner />
+          </IconButton>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography variant="h6" fontWeight={700} color='white' noWrap>
+              {eventInfo?.title || 'Check-in Scanner'}
             </Typography>
-            <Typography variant="caption" sx={{ opacity: 0.9, color: 'white' }}>
+            <Typography variant="caption" sx={{ opacity: 0.9, color: 'white' }} component="div" noWrap>
               {user?.fullName} • {user?.role}
             </Typography>
           </Box>

@@ -31,6 +31,7 @@ import {
   ExpandLess,
 } from '@mui/icons-material';
 import eventAPI from '../eventAPI';
+import useCategories, { categoryIconSrc } from '../useCategories';
 import { EventCard, EventCardSkeleton } from '../components';
 
 // Filter options
@@ -41,18 +42,12 @@ const SORT_OPTIONS = [
   { value: 'title,desc', label: 'Tên Z-A' },
 ];
 
-const CATEGORIES = [
-  { value: '', label: 'Tất cả danh mục' },
-  { value: '1', label: 'Nhạc sống' },
-  { value: '2', label: 'Sân khấu & Nghệ thuật' },
-  { value: '3', label: 'Thể thao' },
-  { value: '4', label: 'Khác' },
-];
-
 const EventListPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const dispatch = useDispatch();
   const cities = useSelector(selectCities);
+  // Danh mục lấy động từ BE thay vì hardcode
+  const { categories } = useCategories();
 
   // State
   const [events, setEvents] = useState([]);
@@ -170,8 +165,8 @@ const EventListPage = () => {
     const labels = [];
     if (keyword) labels.push(`Tìm: "${keyword}"`);
     if (categoryId) {
-      const cat = CATEGORIES.find(c => c.value === categoryId);
-      if (cat) labels.push(cat.label);
+      const cat = categories.find((c) => String(c.id) === categoryId);
+      if (cat) labels.push(cat.name);
     }
     if (city) labels.push(city);
     if (featured) labels.push('Nổi bật');
@@ -256,9 +251,21 @@ const EventListPage = () => {
                     label="Danh mục"
                     onChange={handleCategoryChange}
                   >
-                    {CATEGORIES.map((cat) => (
-                      <MenuItem key={cat.value} value={cat.value}>
-                        {cat.label}
+                    <MenuItem value="">Tất cả danh mục</MenuItem>
+                    {categories.map((cat) => (
+                      <MenuItem key={cat.id} value={String(cat.id)}>
+                        <Box
+                          component="img"
+                          src={categoryIconSrc(cat)}
+                          alt=""
+                          sx={{
+                            width: 18,
+                            height: 18,
+                            mr: 1,
+                            verticalAlign: 'text-bottom',
+                          }}
+                        />
+                        {cat.name}
                       </MenuItem>
                     ))}
                   </Select>
