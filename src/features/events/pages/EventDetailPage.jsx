@@ -46,9 +46,12 @@ import eventAPI from '../eventAPI';
 import { EventCard, EventCardSkeleton } from '../components';
 import ReviewSection from '../components/ReviewSection';
 import { WaitingRoomBanner } from '@/features/waitingroom';
+import waitingRoomAPI from '@/features/waitingroom/waitingRoomAPI';
 import { formatDate, formatCurrency } from '@/utils/helpers';
 import { useAuth } from '@/hooks';
 import { openAuthModal } from '@/features/auth';
+
+const WAITING_ROOM_BLOCKING_STATUSES = ['SCHEDULED', 'PRE_QUEUE', 'SELLING'];
 
 const EventDetailPage = () => {
   const { id } = useParams();
@@ -63,9 +66,19 @@ const EventDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [waitingRoom, setWaitingRoom] = useState(null);
+  const [userQueueStatus, setUserQueueStatus] = useState(null);
 
   // Check if event has ended
   const isEventEnded = event && new Date(event.endDate) < new Date();
+
+  const isWaitingRoomBlocking =
+    waitingRoom?.isEnabled === true &&
+    WAITING_ROOM_BLOCKING_STATUSES.includes(waitingRoom?.status);
+
+  const hasShoppingAccess = userQueueStatus?.status === 'SHOPPING';
+
+  const canShowTicketSelection = !isWaitingRoomBlocking || hasShoppingAccess;
 
   // Fetch event detail
   useEffect(() => {
@@ -78,13 +91,26 @@ const EventDetailPage = () => {
         const response = isSlug
           ? await eventAPI.getEventDetailBySlug(id)
           : await eventAPI.getEventDetail(id);
-        
+
         setEvent(response.data);
 
-        // Fetch related events
-        if (response.data?.id) {
-          const relatedRes = await eventAPI.getRelatedEvents(response.data.id, 4);
-          setRelatedEvents(relatedRes.data || []);
+        const eventId = response.data?.id;
+        if (eventId) {
+          const [relatedRes, waitingRoomRes, queueStatusRes] = await Promise.allSettled([
+            eventAPI.getRelatedEvents(eventId, 4),
+            waitingRoomAPI.getByEventId(eventId),
+            isAuthenticated ? waitingRoomAPI.getQueueStatus(eventId) : Promise.resolve(null),
+          ]);
+
+          if (relatedRes.status === 'fulfilled') {
+            setRelatedEvents(relatedRes.value?.data || []);
+          }
+          if (waitingRoomRes.status === 'fulfilled') {
+            setWaitingRoom(waitingRoomRes.value?.data || null);
+          }
+          if (queueStatusRes.status === 'fulfilled' && queueStatusRes.value) {
+            setUserQueueStatus(queueStatusRes.value?.data || null);
+          }
         }
       } catch (err) {
         console.error('Error fetching event:', err);
@@ -99,24 +125,38 @@ const EventDetailPage = () => {
       fetchEvent();
       window.scrollTo(0, 0);
     }
-  }, [id]);
+  }, [id, isAuthenticated]);
+
+  // Tong so ve da chon (tat ca zone)
+  const totalSelectedQuantity = Object.values(selectedTickets).reduce(
+    (sum, qty) => sum + (qty || 0),
+    0
+  );
+
+  const maxTicketsPerOrder = event?.maxTicketsPerOrder ?? 10;
+
+  const reachedOrderLimit = totalSelectedQuantity >= maxTicketsPerOrder;
 
   // Handle ticket quantity change
   const handleTicketChange = (zoneId, delta) => {
     const current = selectedTickets[zoneId] || 0;
     const zone = event?.ticketZones?.find((z) => z.id === zoneId);
-    const maxQty = Math.min(10, zone?.availableCapacity ?? 10);
-    const newValue = Math.max(0, Math.min(current + delta, maxQty));
+
+    const remainingInOrder = maxTicketsPerOrder - totalSelectedQuantity;
+    const maxIncrement = Math.min(zone?.availableCapacity ?? 0, current + remainingInOrder);
+    const newValue = Math.max(0, Math.min(current + delta, maxIncrement));
+
+    if (newValue === current) return;
     dispatch(updateTicketQuantity({ zoneId, quantity: newValue }));
   };
 
   // Calculate total
   const calculateTotal = () => {
     if (!event?.ticketZones) return { quantity: 0, amount: 0 };
-    
+
     let quantity = 0;
     let amount = 0;
-    
+
     Object.entries(selectedTickets).forEach(([zoneId, qty]) => {
       const zone = event.ticketZones.find((z) => z.id === parseInt(zoneId, 10));
       if (zone) {
@@ -124,7 +164,7 @@ const EventDetailPage = () => {
         amount += zone.price * qty;
       }
     });
-    
+
     return { quantity, amount };
   };
 
@@ -277,7 +317,7 @@ const EventDetailPage = () => {
         {/* Main Content */}
         <Grid container spacing={4}>
           {/* Left Column - Event Info */}
-          <Grid size={{ xs: 12, md: isEventEnded ? 12 : 8 }}>
+          <Grid size={{ xs: 12, md: (isEventEnded || !canShowTicketSelection) ? 12 : 8 }}>
             {/* Title Card */}
             <Paper sx={{ borderRadius: 3, p: 3, mb: 3 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
@@ -384,6 +424,26 @@ const EventDetailPage = () => {
                 <WaitingRoomBanner eventId={event.id} eventSlug={event.slug} />
 
                 {/* Ticket Selection */}
+                {!canShowTicketSelection ? (
+                  <Paper sx={{ borderRadius: 3, p: 4, mb: 3, textAlign: 'center' }}>
+                    <Typography variant="h6" fontWeight={600} gutterBottom>
+                      <ConfirmationNumber sx={{ mr: 1, verticalAlign: 'middle' }} />
+                      Sự kiện này yêu cầu vào phòng chờ
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                      Do nhu cầu mua vé rất cao, sự kiện sử dụng phòng chờ ảo để đảm bảo công bằng.
+                      Vui lòng vào phòng chờ để được cấp quyền mua vé.
+                    </Typography>
+                    <Button
+                      variant="contained"
+                      size="large"
+                      onClick={() => navigate(`/waiting-room/${event.id}`)}
+                    >
+                      Vào phòng chờ
+                    </Button>
+                  </Paper>
+                ) : (
+                /* Ticket Selection */
                 <Paper sx={{ borderRadius: 3, overflow: 'hidden', mb: 3 }}>
                 <Box sx={{ p: 3 }}>
                   <Typography variant="h6" fontWeight={600} gutterBottom>
@@ -396,6 +456,16 @@ const EventDetailPage = () => {
                       Sự kiện này đã hết vé
                     </Alert>
                   ) : (
+                    <>
+                    <Alert
+                      severity={reachedOrderLimit ? 'warning' : 'info'}
+                      icon={<Info />}
+                      sx={{ mt: 2 }}
+                    >
+                      {reachedOrderLimit
+                        ? `Bạn đã chọn tối đa ${maxTicketsPerOrder} vé cho mỗi đơn hàng. Vui lòng tạo đơn mới nếu muốn mua thêm.`
+                        : `Tối đa ${maxTicketsPerOrder} vé mỗi đơn hàng. Đã chọn ${totalSelectedQuantity}/${maxTicketsPerOrder}.`}
+                    </Alert>
                     <TableContainer sx={{ mt: 2 }}>
                       <Table>
                         <TableHead>
@@ -462,7 +532,10 @@ const EventDetailPage = () => {
                                       <IconButton
                                         size="small"
                                         onClick={() => handleTicketChange(zone.id, 1)}
-                                        disabled={quantity >= 10 || quantity >= zone.availableCapacity}
+                                        disabled={
+                                          reachedOrderLimit ||
+                                          quantity >= zone.availableCapacity
+                                        }
                                       >
                                         <Add fontSize="small" />
                                       </IconButton>
@@ -479,9 +552,11 @@ const EventDetailPage = () => {
                         </TableBody>
                       </Table>
                     </TableContainer>
+                    </>
                   )}
                 </Box>
               </Paper>
+                )}
               </>
             )}
 
@@ -525,8 +600,8 @@ const EventDetailPage = () => {
             </Paper>
           </Grid>
 
-          {/* Right Column - Booking Summary (only show if event not ended) */}
-          {!isEventEnded && (
+          {/* Right Column - Booking Summary (only show if event not ended and waiting room không chặn) */}
+          {!isEventEnded && canShowTicketSelection && (
             <Grid size={{ xs: 12, md: 4 }}>
               <Paper
                 sx={{

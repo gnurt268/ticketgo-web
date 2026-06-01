@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useParams } from 'react-router-dom';
 import {
@@ -21,12 +22,17 @@ import {
   ShoppingCart,
   People,
 } from '@mui/icons-material';
+import { TurnstileWidget } from '@/components/common';
+import { TURNSTILE_SITE_KEY } from '@/utils/constants';
 import { useWaitingRoom, QUEUE_STATUS, ROOM_STATUS } from '../hooks';
 import { QueueStatusCard } from '../components';
 
 const WaitingRoomPage = () => {
   const { eventId } = useParams();
   const navigate = useNavigate();
+  const turnstileRef = useRef(null);
+  const [captchaToken, setCaptchaToken] = useState('');
+  const [captchaError, setCaptchaError] = useState(null);
 
   const {
     loading,
@@ -52,11 +58,30 @@ const WaitingRoomPage = () => {
     formatWaitTime,
   } = useWaitingRoom(eventId);
 
+  const captchaRequired = waitingRoom?.captchaRequired === true;
+  const showCaptchaWidget = captchaRequired && Boolean(TURNSTILE_SITE_KEY);
+  const missingSiteKey = captchaRequired && !TURNSTILE_SITE_KEY;
+
   /**
    * Handle join queue
    */
   const handleJoinQueue = async () => {
-    await joinQueue();
+    if (missingSiteKey) {
+      setCaptchaError('CAPTCHA chưa được cấu hình ở phía client. Vui lòng liên hệ quản trị viên.');
+      return;
+    }
+
+    if (showCaptchaWidget && !captchaToken) {
+      setCaptchaError('Vui lòng hoàn tất xác minh CAPTCHA trước khi vào phòng chờ.');
+      return;
+    }
+
+    setCaptchaError(null);
+    const result = await joinQueue({ captchaToken });
+    if (!result && showCaptchaWidget) {
+      setCaptchaToken('');
+      turnstileRef.current?.reset();
+    }
   };
 
   /**
@@ -196,6 +221,12 @@ const WaitingRoomPage = () => {
           </Alert>
         )}
 
+        {captchaError && (
+          <Alert severity="warning" sx={{ mb: 3 }} onClose={() => setCaptchaError(null)}>
+            {captchaError}
+          </Alert>
+        )}
+
         {/* Main Card */}
         <Paper sx={{ borderRadius: 3, overflow: 'hidden' }}>
           {/* Status Header */}
@@ -270,6 +301,25 @@ const WaitingRoomPage = () => {
 
             {/* Action Buttons */}
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {canJoin && showCaptchaWidget && (
+                <TurnstileWidget
+                  ref={turnstileRef}
+                  siteKey={TURNSTILE_SITE_KEY}
+                  onVerify={(token) => {
+                    setCaptchaToken(token);
+                    setCaptchaError(null);
+                  }}
+                  onExpire={() => {
+                    setCaptchaToken('');
+                    setCaptchaError('CAPTCHA đã hết hạn. Vui lòng xác minh lại.');
+                  }}
+                  onError={() => {
+                    setCaptchaToken('');
+                    setCaptchaError('Không thể xác minh CAPTCHA. Vui lòng thử lại.');
+                  }}
+                />
+              )}
+
               {/* Join Queue Button */}
               {canJoin && (
                 <Button

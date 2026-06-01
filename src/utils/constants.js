@@ -1,5 +1,6 @@
 // API
 export const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+export const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || '';
 
 // Storage keys
 export const STORAGE_KEYS = {

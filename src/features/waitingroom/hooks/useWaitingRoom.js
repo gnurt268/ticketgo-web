@@ -86,7 +86,8 @@ const useWaitingRoom = (eventId) => {
       
       return status;
     } catch (err) {
-      if (err.response?.status === 404) {
+      const sts = err.response?.status;
+      if (sts === 404 || sts === 400) {
         setUserStatus(QUEUE_STATUS.NOT_JOINED);
         setQueueStatus(null);
       }
@@ -129,7 +130,7 @@ const useWaitingRoom = (eventId) => {
     
     try {
       const response = await waitingRoomAPI.enterProtectedZone(
-        eventId, 
+        eventId,
         queueStatus.accessToken
       );
       setUserStatus(QUEUE_STATUS.SHOPPING);
@@ -138,11 +139,12 @@ const useWaitingRoom = (eventId) => {
     } catch (err) {
       const message = err.response?.data?.message || 'Không thể vào mua vé';
       setError(message);
+      await fetchQueueStatus();
       return null;
     } finally {
       setIsEntering(false);
     }
-  }, [eventId, queueStatus?.accessToken]);
+  }, [eventId, queueStatus?.accessToken, fetchQueueStatus]);
 
   /**
    * Leave queue
